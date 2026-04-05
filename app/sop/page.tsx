@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, type Dispatch, type SetStateAction } from 'react';
+import { useState, useEffect, useCallback, useRef, type Dispatch, type SetStateAction } from 'react';
 import Link from 'next/link';
 
 /* ─── Constants ─── */
@@ -12,7 +12,7 @@ const SHEET_TOTAL =
   'https://docs.google.com/spreadsheets/d/1U4Izfos-DVgIKObJ1xaHiK-eiN-gc9h9jTRSZ4wuerk/edit?gid=1637426536#gid=1637426536';
 
 /* ─── Types ─── */
-type Tab = 'receiving' | 'shipping' | 'packaging' | 'lalamove' | 'reference';
+type Tab = 'reference' | 'shipping' | 'packaging' | 'lalamove';
 
 interface Step {
   id: string;
@@ -23,12 +23,9 @@ interface Step {
 }
 
 /* ─── Step Data ─── */
-const RECEIVING_STEPS: Step[] = [
-  {
-    id: 'r1',
-    title: '收到「居家整聊室－收納品服務」LINE 社群通知',
-    sub: '收納品負責人確認訂單訊息',
-  },
+
+// 出貨 SOP (收貨 + 出貨合併，刪除 r1，s2/s3 已交換)
+const SHIPPING_STEPS: Step[] = [
   {
     id: 'r2',
     title: '至 iPad 開啟 SHOPLINE',
@@ -44,24 +41,21 @@ const RECEIVING_STEPS: Step[] = [
     title: '點選【商品詳情】，確認品項與數量',
     imgPlaceholder: '商品詳情畫面',
   },
-];
-
-const SHIPPING_STEPS: Step[] = [
   {
     id: 's1',
     title: '接到主整拍照上傳的訂單',
     sub: 'LINE群組：收納品服務-居家整聊室',
   },
   {
+    id: 's3',
+    title: '根據訂單進行撿貨和包裝',
+    sub: 'A系列（衣物）、B系列（小物）、C系列（儲物）、D系列（大件）',
+  },
+  {
     id: 's2',
     title: '填寫出庫紀錄表',
     sub: '填入出貨日期、品項、數量、案場資訊',
     link: { label: '📋 開啟出庫紀錄表', url: SHEET_OUTBOUND },
-  },
-  {
-    id: 's3',
-    title: '根據訂單進行撿貨和包裝',
-    sub: 'A系列（衣物）、B系列（小物）、C系列（儲物）、D系列（大件）',
   },
   {
     id: 's4',
@@ -135,6 +129,7 @@ const LALAMOVE_STEPS: Step[] = [
 /* ─── Auth / Storage ─── */
 const PASSWORD = 'gudo2026';
 const LS_AUTH_KEY = 'gudo-sop-auth';
+const LS_IMAGES_KEY = 'gudo-sop-images';
 
 function getTodayKey() {
   const d = new Date();
@@ -204,19 +199,36 @@ function Collapsible({ title, emoji, children }: { title: string; emoji: string;
   );
 }
 
+/* ─── Step Card with Image Upload ─── */
 function StepCard({
   step,
   index,
   done,
   onToggle,
   showCopyAddress,
+  imageData,
+  onImageUpload,
 }: {
   step: Step;
   index: number;
   done: boolean;
   onToggle: () => void;
   showCopyAddress?: boolean;
+  imageData?: string;
+  onImageUpload?: (dataUrl: string) => void;
 }) {
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !onImageUpload) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') onImageUpload(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div
       className={`rounded-card border-2 overflow-hidden transition-all
@@ -277,13 +289,50 @@ function StepCard({
         </div>
       </button>
 
-      {/* Image Placeholder */}
+      {/* Image section (only for steps with imgPlaceholder) */}
       {step.imgPlaceholder && (
         <div className="px-3.5 pb-3.5">
-          <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl py-5 flex flex-col items-center gap-1.5">
-            <span className="text-xl">📷</span>
-            <span className="text-[11px] text-gray-400">{step.imgPlaceholder}</span>
-          </div>
+          {imageData ? (
+            /* Uploaded image preview */
+            <div className="relative rounded-xl overflow-hidden border border-brand-green/20">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={imageData} alt={step.imgPlaceholder} className="w-full object-cover max-h-48" />
+              {onImageUpload && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); fileRef.current?.click(); }}
+                  className="absolute top-2 right-2 bg-black/50 text-white text-[10px] px-2 py-1 rounded-full hover:bg-black/70 transition"
+                >
+                  ✏️ 更換
+                </button>
+              )}
+            </div>
+          ) : (
+            /* Placeholder / upload area */
+            <div
+              className={`bg-gray-50 border-2 border-dashed rounded-xl py-5 flex flex-col items-center gap-1.5 transition-colors
+                ${onImageUpload ? 'border-brand-green/30 hover:border-brand-green/60 cursor-pointer' : 'border-gray-200'}`}
+              onClick={(e) => { if (onImageUpload) { e.stopPropagation(); fileRef.current?.click(); } }}
+            >
+              <span className="text-xl">{onImageUpload ? '⬆️' : '📷'}</span>
+              <span className="text-[11px] text-gray-400">
+                {onImageUpload ? `上傳圖片：${step.imgPlaceholder}` : step.imgPlaceholder}
+              </span>
+              {onImageUpload && (
+                <span className="text-[10px] text-brand-green font-medium">點此上傳</span>
+              )}
+            </div>
+          )}
+          {/* Hidden file input */}
+          {onImageUpload && (
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileChange}
+              onClick={(e) => e.stopPropagation()}
+            />
+          )}
         </div>
       )}
     </div>
@@ -298,6 +347,8 @@ function ChecklistSection({
   onReset,
   completedMsg = '流程已全部完成！',
   completedSub = '辛苦了！',
+  stepImages,
+  onImageUpload,
 }: {
   steps: Step[];
   checked: Set<string>;
@@ -305,6 +356,8 @@ function ChecklistSection({
   onReset: () => void;
   completedMsg?: string;
   completedSub?: string;
+  stepImages?: Record<string, string>;
+  onImageUpload?: (stepId: string, dataUrl: string) => void;
 }) {
   const allDone = steps.length > 0 && checked.size === steps.length;
 
@@ -329,6 +382,8 @@ function ChecklistSection({
             done={checked.has(step.id)}
             onToggle={() => onToggle(step.id)}
             showCopyAddress={step.id === 'l2'}
+            imageData={stepImages?.[step.id]}
+            onImageUpload={onImageUpload ? (dataUrl) => onImageUpload(step.id, dataUrl) : undefined}
           />
         ))}
       </div>
@@ -348,13 +403,15 @@ export default function SOPPage() {
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [pwError, setPwError] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>('receiving');
+  const [activeTab, setActiveTab] = useState<Tab>('reference');
 
-  const [receivingChecked, setReceivingChecked] = useState<Set<string>>(new Set());
   const [shippingChecked, setShippingChecked] = useState<Set<string>>(new Set());
   const [packagingOutChecked, setPackagingOutChecked] = useState<Set<string>>(new Set());
   const [packagingReturnChecked, setPackagingReturnChecked] = useState<Set<string>>(new Set());
   const [lalamoveChecked, setLalamoveChecked] = useState<Set<string>>(new Set());
+
+  // Step images: { stepId: base64DataUrl }
+  const [stepImages, setStepImages] = useState<Record<string, string>>({});
 
   const [mounted, setMounted] = useState(false);
 
@@ -368,7 +425,6 @@ export default function SOPPage() {
 
     // Load today's checklist state
     const prefixSetterPairs: [string, Dispatch<SetStateAction<Set<string>>>][] = [
-      ['receiving', setReceivingChecked],
       ['shipping', setShippingChecked],
       ['packaging-out', setPackagingOutChecked],
       ['packaging-return', setPackagingReturnChecked],
@@ -382,12 +438,18 @@ export default function SOPPage() {
       } catch { /* ignore */ }
     });
 
+    // Load step images (persistent, not date-keyed)
+    try {
+      const imgs = localStorage.getItem(LS_IMAGES_KEY);
+      if (imgs) setStepImages(JSON.parse(imgs) as Record<string, string>);
+    } catch { /* ignore */ }
+
     // Clean up old day keys
     const today = getTodayKey();
     const toRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.startsWith('gudo-sop-') && key !== LS_AUTH_KEY && !key.endsWith(today)) {
+      if (key && key.startsWith('gudo-sop-') && key !== LS_AUTH_KEY && key !== LS_IMAGES_KEY && !key.endsWith(today)) {
         toRemove.push(key);
       }
     }
@@ -417,17 +479,26 @@ export default function SOPPage() {
       persist(prefix, empty);
     };
 
-  const toggleReceiving       = makeToggle('receiving',        setReceivingChecked);
   const toggleShipping        = makeToggle('shipping',         setShippingChecked);
   const togglePackagingOut    = makeToggle('packaging-out',    setPackagingOutChecked);
   const togglePackagingReturn = makeToggle('packaging-return', setPackagingReturnChecked);
   const toggleLalamove        = makeToggle('lalamove',         setLalamoveChecked);
 
-  const resetReceiving        = makeReset('receiving',        setReceivingChecked);
   const resetShipping         = makeReset('shipping',         setShippingChecked);
   const resetPackagingOut     = makeReset('packaging-out',    setPackagingOutChecked);
   const resetPackagingReturn  = makeReset('packaging-return', setPackagingReturnChecked);
   const resetLalamove         = makeReset('lalamove',         setLalamoveChecked);
+
+  /* ── Image upload handler ── */
+  const handleImageUpload = useCallback((stepId: string, dataUrl: string) => {
+    setStepImages((prev) => {
+      const next = { ...prev, [stepId]: dataUrl };
+      try {
+        localStorage.setItem(LS_IMAGES_KEY, JSON.stringify(next));
+      } catch { /* quota exceeded */ }
+      return next;
+    });
+  }, []);
 
   /* ── Auth handler ── */
   const handleLogin = (e: React.FormEvent) => {
@@ -504,11 +575,10 @@ export default function SOPPage() {
   /* ═══════════════════════ AUTHENTICATED CONTENT ═══════════════════════ */
 
   const tabs: { key: Tab; label: string }[] = [
-    { key: 'receiving',  label: '📥 收貨'     },
+    { key: 'reference',  label: '📋 常用資訊' },
     { key: 'shipping',   label: '📦 出貨'     },
     { key: 'packaging',  label: '🗃️ 包材'     },
     { key: 'lalamove',   label: '🚚 Lalamove' },
-    { key: 'reference',  label: '📋 參考'     },
   ];
 
   return (
@@ -523,7 +593,7 @@ export default function SOPPage() {
         <span className="text-xs text-white/70">{todayDisplay} (週{weekday})</span>
       </header>
 
-      {/* ── Tab Nav (scrollable, 5 tabs) ── */}
+      {/* ── Tab Nav (scrollable, 4 tabs) ── */}
       <nav className="bg-white border-b border-brand-border sticky top-[52px] z-40">
         <div
           className="max-w-[480px] mx-auto flex overflow-x-auto"
@@ -533,7 +603,7 @@ export default function SOPPage() {
             <button
               key={t.key}
               onClick={() => setActiveTab(t.key)}
-              className={`flex-none min-w-[80px] py-3 px-2 text-[11px] font-semibold text-center transition-all relative whitespace-nowrap
+              className={`flex-none min-w-[88px] py-3 px-2 text-[11px] font-semibold text-center transition-all relative whitespace-nowrap
                 ${activeTab === t.key ? 'text-brand-green' : 'text-brand-muted hover:text-brand-text'}`}
             >
               {t.label}
@@ -548,19 +618,92 @@ export default function SOPPage() {
       {/* ── Content ── */}
       <main className="flex-1 max-w-[480px] w-full mx-auto px-4 py-5">
 
-        {/* ═══ TAB 1: RECEIVING ═══ */}
-        {activeTab === 'receiving' && (
-          <ChecklistSection
-            steps={RECEIVING_STEPS}
-            checked={receivingChecked}
-            onToggle={toggleReceiving}
-            onReset={resetReceiving}
-            completedMsg="收貨流程已全部完成！"
-            completedSub="記得確認品項無誤"
-          />
+        {/* ═══ TAB 1: 常用資訊 (原 reference) ═══ */}
+        {activeTab === 'reference' && (
+          <div className="space-y-4">
+
+            {/* LINE 社群 */}
+            <div className="bg-white rounded-card border-2 border-brand-border p-4">
+              <h3 className="text-sm font-bold text-brand-text mb-3 flex items-center gap-2">
+                <span className="w-7 h-7 bg-green-100 rounded-lg flex items-center justify-center text-base">💬</span>
+                LINE 社群
+              </h3>
+              <div className="flex items-center gap-4">
+                <div className="shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(LINE_URL)}`}
+                    alt="LINE 社群 QR Code"
+                    width={100}
+                    height={100}
+                    className="rounded-lg border border-gray-100"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-brand-text leading-tight">居家整聊室</p>
+                  <p className="text-xs text-brand-muted mt-0.5">收納品服務</p>
+                  <a
+                    href={LINE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2.5 inline-flex items-center gap-1.5 bg-[#06C755] text-white text-xs font-semibold px-3 py-1.5 rounded-full hover:bg-[#05a847] transition"
+                  >
+                    加入社群
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* 倉庫資訊 */}
+            <div className="bg-white rounded-card border-2 border-brand-border p-4">
+              <h3 className="text-sm font-bold text-brand-text mb-3 flex items-center gap-2">
+                <span className="w-7 h-7 bg-brand-green/10 rounded-lg flex items-center justify-center text-base">🏠</span>
+                倉庫資訊
+              </h3>
+              <div className="space-y-2 text-xs text-brand-text">
+                <div className="flex items-start gap-2">
+                  <span className="text-brand-muted shrink-0 w-12">地址</span>
+                  <span className="flex-1">台北市信義區松德路118巷3號1樓(B1)</span>
+                  <CopyButton text="台北市信義區松德路118巷3號1樓(B1)" />
+                </div>
+              </div>
+            </div>
+
+            {/* 常用連結 */}
+            <div className="bg-white rounded-card border-2 border-brand-border p-4">
+              <h3 className="text-sm font-bold text-brand-text mb-3 flex items-center gap-2">
+                <span className="w-7 h-7 bg-brand-green/10 rounded-lg flex items-center justify-center text-base">🔗</span>
+                常用連結
+              </h3>
+              <div className="space-y-2">
+                {[
+                  { label: 'Shopline 後台', url: 'https://admin.shoplineapp.com', emoji: '🛒' },
+                  { label: '出庫紀錄表',    url: SHEET_OUTBOUND,                  emoji: '📤' },
+                  { label: '案場總表',      url: SHEET_TOTAL,                     emoji: '📊' },
+                  { label: 'Lalamove',      url: 'https://www.lalamove.com',       emoji: '🚚' },
+                ].map((link) => (
+                  <a
+                    key={link.label}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 bg-gray-50 rounded-lg px-3 py-2.5 hover:bg-gray-100 transition group"
+                  >
+                    <span className="text-base">{link.emoji}</span>
+                    <span className="text-xs font-semibold text-brand-text flex-1">{link.label}</span>
+                    <span className="text-brand-muted text-xs group-hover:text-brand-green transition">→</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+
+          </div>
         )}
 
-        {/* ═══ TAB 2: SHIPPING ═══ */}
+        {/* ═══ TAB 2: 出貨 (收貨+出貨合併) ═══ */}
         {activeTab === 'shipping' && (
           <div>
             <ChecklistSection
@@ -570,6 +713,8 @@ export default function SOPPage() {
               onReset={resetShipping}
               completedMsg="今日出貨流程已全部完成！"
               completedSub="辛苦了！"
+              stepImages={stepImages}
+              onImageUpload={handleImageUpload}
             />
 
             <Collapsible title="庫存不足 / 品項錯誤" emoji="⚠️">
@@ -676,112 +821,6 @@ export default function SOPPage() {
           </div>
         )}
 
-        {/* ═══ TAB 5: REFERENCE ═══ */}
-        {activeTab === 'reference' && (
-          <div className="space-y-4">
-
-            {/* LINE 社群 */}
-            <div className="bg-white rounded-card border-2 border-brand-border p-4">
-              <h3 className="text-sm font-bold text-brand-text mb-3 flex items-center gap-2">
-                <span className="w-7 h-7 bg-green-100 rounded-lg flex items-center justify-center text-base">💬</span>
-                LINE 社群
-              </h3>
-              <div className="flex items-center gap-4">
-                <div className="shrink-0">
-                  {/* QR Code generated via qrserver.com */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(LINE_URL)}`}
-                    alt="LINE 社群 QR Code"
-                    width={100}
-                    height={100}
-                    className="rounded-lg border border-gray-100"
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-brand-text leading-tight">居家整聊室</p>
-                  <p className="text-xs text-brand-muted mt-0.5">收納品服務</p>
-                  <a
-                    href={LINE_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2.5 inline-flex items-center gap-1.5 bg-[#06C755] text-white text-xs font-semibold px-3 py-1.5 rounded-full hover:bg-[#05a847] transition"
-                  >
-                    加入社群
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            {/* 倉庫資訊 */}
-            <div className="bg-white rounded-card border-2 border-brand-border p-4">
-              <h3 className="text-sm font-bold text-brand-text mb-3 flex items-center gap-2">
-                <span className="w-7 h-7 bg-brand-green/10 rounded-lg flex items-center justify-center text-base">🏠</span>
-                倉庫資訊
-              </h3>
-              <div className="space-y-2 text-xs text-brand-text">
-                <div className="flex items-start gap-2">
-                  <span className="text-brand-muted shrink-0 w-12">地址</span>
-                  <span className="flex-1">台北市信義區松德路118巷3號1樓(B1)</span>
-                  <CopyButton text="台北市信義區松德路118巷3號1樓(B1)" />
-                </div>
-              </div>
-            </div>
-
-            {/* 倉儲商品位置 */}
-            <div className="bg-white rounded-card border-2 border-brand-border p-4">
-              <h3 className="text-sm font-bold text-brand-text mb-3 flex items-center gap-2">
-                <span className="w-7 h-7 bg-brand-green/10 rounded-lg flex items-center justify-center text-base">📍</span>
-                倉儲商品位置
-              </h3>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { zone: 'A', label: '衣物收納', color: 'bg-emerald-50 border-emerald-200 text-emerald-800' },
-                  { zone: 'B', label: '小物收納', color: 'bg-blue-50 border-blue-200 text-blue-800' },
-                  { zone: 'C', label: '儲物收納', color: 'bg-amber-50 border-amber-200 text-amber-800' },
-                  { zone: 'D', label: '大件收納', color: 'bg-purple-50 border-purple-200 text-purple-800' },
-                ].map((z) => (
-                  <div key={z.zone} className={`${z.color} border rounded-lg p-3 text-center`}>
-                    <div className="text-lg font-black">{z.zone}</div>
-                    <div className="text-[11px] font-medium mt-0.5">{z.label}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* 常用連結 */}
-            <div className="bg-white rounded-card border-2 border-brand-border p-4">
-              <h3 className="text-sm font-bold text-brand-text mb-3 flex items-center gap-2">
-                <span className="w-7 h-7 bg-brand-green/10 rounded-lg flex items-center justify-center text-base">🔗</span>
-                常用連結
-              </h3>
-              <div className="space-y-2">
-                {[
-                  { label: 'Shopline 後台', url: 'https://admin.shoplineapp.com', emoji: '🛒' },
-                  { label: '出庫紀錄表',    url: SHEET_OUTBOUND,                  emoji: '📤' },
-                  { label: '案場總表',      url: SHEET_TOTAL,                     emoji: '📊' },
-                  { label: 'Lalamove',      url: 'https://www.lalamove.com',       emoji: '🚚' },
-                ].map((link) => (
-                  <a
-                    key={link.label}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 bg-gray-50 rounded-lg px-3 py-2.5 hover:bg-gray-100 transition group"
-                  >
-                    <span className="text-base">{link.emoji}</span>
-                    <span className="text-xs font-semibold text-brand-text flex-1">{link.label}</span>
-                    <span className="text-brand-muted text-xs group-hover:text-brand-green transition">→</span>
-                  </a>
-                ))}
-              </div>
-            </div>
-
-          </div>
-        )}
       </main>
 
       {/* ── Footer ── */}

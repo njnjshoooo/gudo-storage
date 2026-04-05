@@ -39,11 +39,8 @@ function calcItem(c: Cabinet, qty: number) {
 
 function findProducts(c: Cabinet, qty: number): Product[] {
   const { iw, id } = calcItem(c, qty);
-  const byType = Object.values(PRODUCTS).filter(p =>
-    p.spaces.some(s => s === c.type)
-  );
-  const pool = byType.length > 0 ? byType : Object.values(PRODUCTS);
-  return pool
+  // 所有商品均可互通 — 只依尺寸相符度排序，不以收納類型篩選
+  return Object.values(PRODUCTS)
     .map(p => ({
       p,
       score:

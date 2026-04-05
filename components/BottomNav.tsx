@@ -4,11 +4,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const NAV = [
-  { href: '/',      icon: '🏠', label: '首頁'  },
-  { href: '/tool',  icon: '🗄️', label: '工具'  },
-  { href: '/edm',   icon: '🛍️', label: '型錄'  },
-  { href: '/sop',   icon: '📦', label: 'SOP'   },
-  { href: '/cases', icon: '📸', label: '案例'  },
+  { href: '/',        icon: '🏠', label: '首頁'  },
+  { href: '/tool',    icon: '🗄️', label: '工具'  },
+  { href: '/edm',     icon: '🛍️', label: '型錄'  },
+  { href: '/sop',     icon: '📦', label: 'SOP'   },
+  { href: '/journal', icon: '📔', label: '日誌'  },
 ] as const;
 
 export default function BottomNav() {
