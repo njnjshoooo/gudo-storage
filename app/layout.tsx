@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import BottomNav from "@/components/BottomNav";
 
 export const metadata: Metadata = {
   title: "GUDO 收納品工具站",
@@ -13,8 +14,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-TW">
-      <body className="min-h-screen">
+      {/* pb-20 = 56px nav + 24px buffer + iOS safe area via BottomNav */}
+      <body className="min-h-screen pb-20">
         {children}
+        <BottomNav />
       </body>
     </html>
   );
