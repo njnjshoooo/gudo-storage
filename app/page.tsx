@@ -3,7 +3,7 @@ import Link from 'next/link';
 const tools = [
   { icon: '🗄️', title: '收納品配置工具', desc: '輸入空間尺寸，自動推薦收納品組合', href: '/tool', color: 'bg-emerald-50 border-emerald-200' },
   { icon: '📦', title: '進出貨 SOP', desc: '店員出貨清單與 Lalamove 流程', href: '/sop', color: 'bg-amber-50 border-amber-200', locked: true },
-  { icon: '🛍️', title: '商店方案 EDM', desc: '五大空間整理方案，一次看完', href: '/edm', color: 'bg-blue-50 border-blue-200' },
+  { icon: '🛍️', title: '商品型錄', desc: '所有收納品一次瀏覽，含售價與尺寸', href: '/edm', color: 'bg-blue-50 border-blue-200' },
   { icon: '📸', title: '案例分享', desc: 'Before/After 整理成果展示', href: '/cases', color: 'bg-purple-50 border-purple-200' },
 ];
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
+import Link from 'next/link';
 import Image from 'next/image';
 import { PRODUCTS, SPACE_TYPES, type Product, type SpaceType } from '@/lib/products';
 import { recommend, type Recommendation } from '@/lib/recommend';
@@ -185,7 +186,8 @@ export default function ToolPage() {
     return (
       <div className="min-h-screen bg-brand-bg flex flex-col">
         {/* Header */}
-        <header className="bg-brand-green text-white px-5 py-3 flex items-center justify-between sticky top-0 z-50 shadow-md">
+        <header className="bg-brand-green text-white px-5 py-3 flex items-center gap-3 sticky top-0 z-50 shadow-md">
+          <Link href="/" className="text-white/80 hover:text-white transition text-sm">&larr;</Link>
           <h1 className="text-base font-bold tracking-wide">🗄️ 收納品配置工具</h1>
         </header>
 

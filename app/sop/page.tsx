@@ -1,37 +1,138 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type Dispatch, type SetStateAction } from 'react';
 import Link from 'next/link';
 
+/* ─── Constants ─── */
+const LINE_URL =
+  'https://line.me/ti/g2/JcZee_vl2-n3EhXlG7b85pq-B1plT9ry93GwbQ?utm_source=invitation&utm_medium=link_copy&utm_campaign=default';
+const SHEET_OUTBOUND =
+  'https://docs.google.com/spreadsheets/d/1a_x33oSam-IlvYxVPZoNCC3bVuiFzJMqe9DsTjEO5ZI/edit?gid=689219061#gid=689219061';
+const SHEET_TOTAL =
+  'https://docs.google.com/spreadsheets/d/1U4Izfos-DVgIKObJ1xaHiK-eiN-gc9h9jTRSZ4wuerk/edit?gid=1637426536#gid=1637426536';
+
 /* ─── Types ─── */
-type Tab = 'shipping' | 'lalamove' | 'reference';
+type Tab = 'receiving' | 'shipping' | 'packaging' | 'lalamove' | 'reference';
 
 interface Step {
   id: string;
   title: string;
-  sub: string;
+  sub?: string;
+  link?: { label: string; url: string };
+  imgPlaceholder?: string;
 }
 
-/* ─── Data ─── */
+/* ─── Step Data ─── */
+const RECEIVING_STEPS: Step[] = [
+  {
+    id: 'r1',
+    title: '收到「居家整聊室－收納品服務」LINE 社群通知',
+    sub: '收納品負責人確認訂單訊息',
+  },
+  {
+    id: 'r2',
+    title: '至 iPad 開啟 SHOPLINE',
+    imgPlaceholder: 'SHOPLINE 開啟畫面',
+  },
+  {
+    id: 'r3',
+    title: '點選【訂單】，選擇該筆訂單',
+    imgPlaceholder: '訂單列表畫面',
+  },
+  {
+    id: 'r4',
+    title: '點選【商品詳情】，確認品項與數量',
+    imgPlaceholder: '商品詳情畫面',
+  },
+];
+
 const SHIPPING_STEPS: Step[] = [
-  { id: 's1', title: '登入 Shopline 後台，確認訂單', sub: '確認商品品項、數量與客戶地址無誤' },
-  { id: 's2', title: '填寫「出庫記錄表」', sub: '填入出貨日期、品項、數量、案場資訊' },
-  { id: 's3', title: '至倉庫撿貨，逐一核對品項', sub: 'A系列（衣物）、B系列（小物）、C系列（儲物）、D系列（大件）' },
-  { id: 's4', title: '包裝商品，貼上訂單標籤', sub: '確保包裝牢固、標籤朝外清晰可見' },
-  { id: 's5', title: '從後門出貨，交給Lalamove司機', sub: '少件：整理師自行攜帶；多件：預約Lalamove' },
-  { id: 's6', title: '在LINE群組回傳出貨截圖', sub: '包含：訂單截圖 + Lalamove預約截圖' },
-  { id: 's7', title: '填寫「案場總表」更新配送狀態', sub: '更新欄位：出貨日、物流方式、備註' },
+  {
+    id: 's1',
+    title: '接到主整拍照上傳的訂單',
+    sub: 'LINE群組：收納品服務-居家整聊室',
+  },
+  {
+    id: 's2',
+    title: '填寫出庫紀錄表',
+    sub: '填入出貨日期、品項、數量、案場資訊',
+    link: { label: '📋 開啟出庫紀錄表', url: SHEET_OUTBOUND },
+  },
+  {
+    id: 's3',
+    title: '根據訂單進行撿貨和包裝',
+    sub: 'A系列（衣物）、B系列（小物）、C系列（儲物）、D系列（大件）',
+  },
+  {
+    id: 's4',
+    title: '將貨物交給 Lalamove 司機，並拍照紀錄',
+  },
+  {
+    id: 's5',
+    title: '於收納品 LINE 群組回傳資訊',
+    sub: '照片 / Lalamove 追蹤連結 / 訂單金額',
+    imgPlaceholder: '群組回傳範例圖',
+  },
+  {
+    id: 's6',
+    title: '將訂單金額回填至案場總表',
+    sub: '填入「收納品金額」欄位',
+    link: { label: '📊 開啟案場總表', url: SHEET_TOTAL },
+  },
+];
+
+const PACKAGING_OUT_STEPS: Step[] = [
+  {
+    id: 'po1',
+    title: '確認包材種類與數量',
+    sub: '紙箱、氣泡膜、封箱膠帶等',
+  },
+  {
+    id: 'po2',
+    title: '填寫包材出庫記錄',
+    sub: '填入日期、品項、數量',
+  },
+  {
+    id: 'po3',
+    title: '準備包材，進行整理包裝',
+  },
+  {
+    id: 'po4',
+    title: '交給司機並拍照記錄',
+  },
+];
+
+const PACKAGING_RETURN_STEPS: Step[] = [
+  {
+    id: 'pr1',
+    title: '整理師通知回收時間與地點',
+    sub: 'LINE群組：收納品服務-居家整聊室',
+  },
+  {
+    id: 'pr2',
+    title: '安排回收時間與司機',
+  },
+  {
+    id: 'pr3',
+    title: '確認回收包材狀態',
+    sub: '損壞品需記錄報廢',
+  },
+  {
+    id: 'pr4',
+    title: '填寫包材入庫記錄，更新庫存表',
+  },
 ];
 
 const LALAMOVE_STEPS: Step[] = [
-  { id: 'l1', title: '登入Lalamove企業帳號', sub: '' },
+  { id: 'l1', title: '登入Lalamove企業帳號' },
   { id: 'l2', title: '設定收貨地點（起點）', sub: '台北市松德路118巷3號1樓' },
-  { id: 'l3', title: '輸入送達地點（終點）', sub: '' },
+  { id: 'l3', title: '輸入送達地點（終點）' },
   { id: 'l4', title: '選擇車型', sub: '機車 / 小貨車 / 廂型車' },
   { id: 'l5', title: '設定收貨時間', sub: '服務結束前2小時' },
   { id: 'l6', title: '確認付款方式 → 送出訂單', sub: '企業錢包' },
 ];
 
+/* ─── Auth / Storage ─── */
 const PASSWORD = 'gudo2026';
 const LS_AUTH_KEY = 'gudo-sop-auth';
 
@@ -44,21 +145,17 @@ function getStorageKey(prefix: string) {
   return `gudo-sop-${prefix}-${getTodayKey()}`;
 }
 
-/* ─── Small components ─── */
+/* ─── Small Components ─── */
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
-
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* fallback */
-    }
+    } catch { /* fallback */ }
   };
-
   return (
     <button
       onClick={(e) => { e.stopPropagation(); handleCopy(); }}
@@ -95,12 +192,8 @@ function Collapsible({ title, emoji, children }: { title: string; emoji: string;
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between px-4 py-3 text-left"
       >
-        <span className="text-sm font-semibold text-amber-800">
-          {emoji} {title}
-        </span>
-        <span className={`text-amber-500 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>
-          &#9662;
-        </span>
+        <span className="text-sm font-semibold text-amber-800">{emoji} {title}</span>
+        <span className={`text-amber-500 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>▾</span>
       </button>
       {open && (
         <div className="px-4 pb-4 text-xs text-amber-900 leading-relaxed border-t border-amber-100 pt-3">
@@ -111,90 +204,230 @@ function Collapsible({ title, emoji, children }: { title: string; emoji: string;
   );
 }
 
-/* ─── Main Component ─── */
+function StepCard({
+  step,
+  index,
+  done,
+  onToggle,
+  showCopyAddress,
+}: {
+  step: Step;
+  index: number;
+  done: boolean;
+  onToggle: () => void;
+  showCopyAddress?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-card border-2 overflow-hidden transition-all
+        ${done ? 'bg-brand-green-light border-brand-green/30' : 'bg-white border-brand-border hover:border-brand-green/40'}`}
+    >
+      <button onClick={onToggle} className="w-full text-left flex items-start gap-3 p-3.5">
+        {/* Checkbox */}
+        <div
+          className={`mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all
+            ${done ? 'bg-brand-green border-brand-green text-white' : 'border-gray-300 bg-white'}`}
+        >
+          {done && (
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          )}
+        </div>
 
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span
+              className={`text-[11px] font-bold px-1.5 py-0.5 rounded shrink-0
+                ${done ? 'bg-brand-green/20 text-brand-green' : 'bg-gray-100 text-brand-muted'}`}
+            >
+              {index + 1}
+            </span>
+            <span
+              className={`text-sm font-semibold leading-tight
+                ${done ? 'text-brand-green line-through decoration-brand-green/40' : 'text-brand-text'}`}
+            >
+              {step.title}
+            </span>
+          </div>
+          {step.sub && (
+            <div
+              className={`text-xs mt-1 leading-relaxed flex items-center flex-wrap gap-x-1
+                ${done ? 'text-brand-green/60' : 'text-brand-muted'}`}
+            >
+              <span>{step.sub}</span>
+              {showCopyAddress && <CopyButton text="台北市松德路118巷3號1樓" />}
+            </div>
+          )}
+          {step.link && (
+            <a
+              href={step.link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="mt-2 inline-flex items-center gap-1.5 text-[11px] bg-brand-green text-white px-3 py-1 rounded-full hover:bg-brand-green-hover transition"
+            >
+              {step.link.label}
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
+          )}
+        </div>
+      </button>
+
+      {/* Image Placeholder */}
+      {step.imgPlaceholder && (
+        <div className="px-3.5 pb-3.5">
+          <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl py-5 flex flex-col items-center gap-1.5">
+            <span className="text-xl">📷</span>
+            <span className="text-[11px] text-gray-400">{step.imgPlaceholder}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Reusable Checklist Section ─── */
+function ChecklistSection({
+  steps,
+  checked,
+  onToggle,
+  onReset,
+  completedMsg = '流程已全部完成！',
+  completedSub = '辛苦了！',
+}: {
+  steps: Step[];
+  checked: Set<string>;
+  onToggle: (id: string) => void;
+  onReset: () => void;
+  completedMsg?: string;
+  completedSub?: string;
+}) {
+  const allDone = steps.length > 0 && checked.size === steps.length;
+
+  return (
+    <div>
+      {allDone && (
+        <div className="bg-brand-green text-white rounded-card p-4 mb-4 text-center">
+          <div className="text-2xl mb-1">🎉</div>
+          <p className="text-sm font-bold">{completedMsg}</p>
+          <p className="text-xs text-white/70 mt-1">{completedSub}</p>
+        </div>
+      )}
+
+      <ProgressBar done={checked.size} total={steps.length} />
+
+      <div className="space-y-2.5 mb-5">
+        {steps.map((step, i) => (
+          <StepCard
+            key={step.id}
+            step={step}
+            index={i}
+            done={checked.has(step.id)}
+            onToggle={() => onToggle(step.id)}
+            showCopyAddress={step.id === 'l2'}
+          />
+        ))}
+      </div>
+
+      <button
+        onClick={onReset}
+        className="w-full py-2.5 text-xs text-brand-muted border border-brand-border rounded-btn hover:bg-gray-50 transition mb-5"
+      >
+        ↺ 重置清單
+      </button>
+    </div>
+  );
+}
+
+/* ─── Main Component ─── */
 export default function SOPPage() {
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [pwError, setPwError] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>('shipping');
+  const [activeTab, setActiveTab] = useState<Tab>('receiving');
+
+  const [receivingChecked, setReceivingChecked] = useState<Set<string>>(new Set());
   const [shippingChecked, setShippingChecked] = useState<Set<string>>(new Set());
+  const [packagingOutChecked, setPackagingOutChecked] = useState<Set<string>>(new Set());
+  const [packagingReturnChecked, setPackagingReturnChecked] = useState<Set<string>>(new Set());
   const [lalamoveChecked, setLalamoveChecked] = useState<Set<string>>(new Set());
+
   const [mounted, setMounted] = useState(false);
 
-  /* ── Init: check auth + load today's checks ── */
+  /* ── Init ── */
   useEffect(() => {
     setMounted(true);
-    // Check auth
-    if (typeof window !== 'undefined') {
-      const auth = localStorage.getItem(LS_AUTH_KEY);
-      if (auth === 'true') setAuthenticated(true);
+    if (typeof window === 'undefined') return;
 
-      // Load today's checklist state
-      const sKey = getStorageKey('shipping');
-      const lKey = getStorageKey('lalamove');
+    // Auth check
+    if (localStorage.getItem(LS_AUTH_KEY) === 'true') setAuthenticated(true);
+
+    // Load today's checklist state
+    const prefixSetterPairs: [string, Dispatch<SetStateAction<Set<string>>>][] = [
+      ['receiving', setReceivingChecked],
+      ['shipping', setShippingChecked],
+      ['packaging-out', setPackagingOutChecked],
+      ['packaging-return', setPackagingReturnChecked],
+      ['lalamove', setLalamoveChecked],
+    ];
+
+    prefixSetterPairs.forEach(([prefix, setter]) => {
       try {
-        const sData = localStorage.getItem(sKey);
-        if (sData) setShippingChecked(new Set(JSON.parse(sData)));
-        const lData = localStorage.getItem(lKey);
-        if (lData) setLalamoveChecked(new Set(JSON.parse(lData)));
-      } catch {
-        /* ignore parse errors */
-      }
+        const data = localStorage.getItem(getStorageKey(prefix));
+        if (data) setter(new Set(JSON.parse(data) as string[]));
+      } catch { /* ignore */ }
+    });
 
-      // Clean up old keys (anything not from today)
-      const today = getTodayKey();
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('gudo-sop-') && key !== LS_AUTH_KEY) {
-          if (!key.endsWith(today)) {
-            localStorage.removeItem(key);
-          }
-        }
+    // Clean up old day keys
+    const today = getTodayKey();
+    const toRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('gudo-sop-') && key !== LS_AUTH_KEY && !key.endsWith(today)) {
+        toRemove.push(key);
       }
     }
+    toRemove.forEach((k) => localStorage.removeItem(k));
   }, []);
 
-  /* ── Persist checks ── */
-  const persistShipping = useCallback((s: Set<string>) => {
-    localStorage.setItem(getStorageKey('shipping'), JSON.stringify([...s]));
+  /* ── Persist ── */
+  const persist = useCallback((prefix: string, s: Set<string>) => {
+    localStorage.setItem(getStorageKey(prefix), JSON.stringify([...s]));
   }, []);
 
-  const persistLalamove = useCallback((s: Set<string>) => {
-    localStorage.setItem(getStorageKey('lalamove'), JSON.stringify([...s]));
-  }, []);
+  /* ── Toggle / Reset factories ── */
+  const makeToggle = (prefix: string, setter: Dispatch<SetStateAction<Set<string>>>) =>
+    (id: string) => {
+      setter((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id); else next.add(id);
+        persist(prefix, next);
+        return next;
+      });
+    };
 
-  /* ── Toggle step ── */
-  const toggleShipping = (id: string) => {
-    setShippingChecked((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      persistShipping(next);
-      return next;
-    });
-  };
+  const makeReset = (prefix: string, setter: Dispatch<SetStateAction<Set<string>>>) =>
+    () => {
+      const empty = new Set<string>();
+      setter(empty);
+      persist(prefix, empty);
+    };
 
-  const toggleLalamove = (id: string) => {
-    setLalamoveChecked((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      persistLalamove(next);
-      return next;
-    });
-  };
+  const toggleReceiving       = makeToggle('receiving',        setReceivingChecked);
+  const toggleShipping        = makeToggle('shipping',         setShippingChecked);
+  const togglePackagingOut    = makeToggle('packaging-out',    setPackagingOutChecked);
+  const togglePackagingReturn = makeToggle('packaging-return', setPackagingReturnChecked);
+  const toggleLalamove        = makeToggle('lalamove',         setLalamoveChecked);
 
-  /* ── Reset ── */
-  const resetShipping = () => {
-    const empty = new Set<string>();
-    setShippingChecked(empty);
-    persistShipping(empty);
-  };
-
-  const resetLalamove = () => {
-    const empty = new Set<string>();
-    setLalamoveChecked(empty);
-    persistLalamove(empty);
-  };
+  const resetReceiving        = makeReset('receiving',        setReceivingChecked);
+  const resetShipping         = makeReset('shipping',         setShippingChecked);
+  const resetPackagingOut     = makeReset('packaging-out',    setPackagingOutChecked);
+  const resetPackagingReturn  = makeReset('packaging-return', setPackagingReturnChecked);
+  const resetLalamove         = makeReset('lalamove',         setLalamoveChecked);
 
   /* ── Auth handler ── */
   const handleLogin = (e: React.FormEvent) => {
@@ -213,10 +446,9 @@ export default function SOPPage() {
     const d = new Date();
     return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
   })();
-
   const weekday = ['日', '一', '二', '三', '四', '五', '六'][new Date().getDay()];
 
-  /* ── Prevent hydration mismatch ── */
+  /* ── Hydration guard ── */
   if (!mounted) {
     return (
       <div className="min-h-screen bg-brand-bg flex items-center justify-center">
@@ -229,22 +461,17 @@ export default function SOPPage() {
   if (!authenticated) {
     return (
       <div className="min-h-screen bg-brand-bg flex flex-col">
-        {/* Header */}
         <header className="bg-brand-green text-white px-5 py-3 flex items-center gap-3 sticky top-0 z-50 shadow-md">
-          <Link href="/" className="text-white/80 hover:text-white transition text-sm">
-            &larr;
-          </Link>
+          <Link href="/" className="text-white/80 hover:text-white transition text-sm">&larr;</Link>
           <h1 className="text-base font-bold tracking-wide">📦 進出貨 SOP</h1>
         </header>
 
         <div className="flex-1 flex items-center justify-center px-6">
           <form onSubmit={handleLogin} className="w-full max-w-[320px]">
             <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
-              <div className="w-14 h-14 bg-brand-green/10 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">
-                🔒
-              </div>
+              <div className="w-14 h-14 bg-brand-green/10 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">🔒</div>
               <h2 className="text-lg font-bold text-brand-text mb-1">店員專區</h2>
-              <p className="text-xs text-brand-muted mb-6">請輸入密碼以查看出貨 SOP</p>
+              <p className="text-xs text-brand-muted mb-6">請輸入密碼以查看進出貨 SOP</p>
 
               <input
                 type="password"
@@ -258,9 +485,7 @@ export default function SOPPage() {
                   } focus:ring-2`}
                 autoFocus
               />
-              {pwError && (
-                <p className="text-brand-red text-xs mt-2 font-medium">密碼錯誤，請重新輸入</p>
-              )}
+              {pwError && <p className="text-brand-red text-xs mt-2 font-medium">密碼錯誤，請重新輸入</p>}
 
               <button
                 type="submit"
@@ -269,10 +494,7 @@ export default function SOPPage() {
                 進入
               </button>
             </div>
-
-            <p className="text-center text-[11px] text-brand-muted mt-6">
-              僅限 GUDO 內部人員使用
-            </p>
+            <p className="text-center text-[11px] text-brand-muted mt-6">僅限 GUDO 內部人員使用</p>
           </form>
         </div>
       </div>
@@ -282,39 +504,37 @@ export default function SOPPage() {
   /* ═══════════════════════ AUTHENTICATED CONTENT ═══════════════════════ */
 
   const tabs: { key: Tab; label: string }[] = [
-    { key: 'shipping', label: '📦 出貨流程' },
-    { key: 'lalamove', label: '🚚 Lalamove' },
-    { key: 'reference', label: '📋 參考資料' },
+    { key: 'receiving',  label: '📥 收貨'     },
+    { key: 'shipping',   label: '📦 出貨'     },
+    { key: 'packaging',  label: '🗃️ 包材'     },
+    { key: 'lalamove',   label: '🚚 Lalamove' },
+    { key: 'reference',  label: '📋 參考'     },
   ];
-
-  const allShippingDone = shippingChecked.size === SHIPPING_STEPS.length;
-  const allLalamoveDone = lalamoveChecked.size === LALAMOVE_STEPS.length;
 
   return (
     <div className="min-h-screen bg-brand-bg flex flex-col">
+
       {/* ── Sticky Header ── */}
       <header className="bg-brand-green text-white px-5 py-3 flex items-center justify-between sticky top-0 z-50 shadow-md">
         <div className="flex items-center gap-3">
-          <Link href="/" className="text-white/80 hover:text-white transition text-sm">
-            &larr;
-          </Link>
+          <Link href="/" className="text-white/80 hover:text-white transition text-sm">&larr;</Link>
           <h1 className="text-base font-bold tracking-wide">📦 進出貨 SOP</h1>
         </div>
         <span className="text-xs text-white/70">{todayDisplay} (週{weekday})</span>
       </header>
 
-      {/* ── Tab Nav ── */}
+      {/* ── Tab Nav (scrollable, 5 tabs) ── */}
       <nav className="bg-white border-b border-brand-border sticky top-[52px] z-40">
-        <div className="max-w-[480px] mx-auto flex">
+        <div
+          className="max-w-[480px] mx-auto flex overflow-x-auto"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}
+        >
           {tabs.map((t) => (
             <button
               key={t.key}
               onClick={() => setActiveTab(t.key)}
-              className={`flex-1 py-3 text-xs font-semibold text-center transition-all relative
-                ${activeTab === t.key
-                  ? 'text-brand-green'
-                  : 'text-brand-muted hover:text-brand-text'
-                }`}
+              className={`flex-none min-w-[80px] py-3 px-2 text-[11px] font-semibold text-center transition-all relative whitespace-nowrap
+                ${activeTab === t.key ? 'text-brand-green' : 'text-brand-muted hover:text-brand-text'}`}
             >
               {t.label}
               {activeTab === t.key && (
@@ -328,224 +548,178 @@ export default function SOPPage() {
       {/* ── Content ── */}
       <main className="flex-1 max-w-[480px] w-full mx-auto px-4 py-5">
 
-        {/* ═══ TAB 1: SHIPPING ═══ */}
+        {/* ═══ TAB 1: RECEIVING ═══ */}
+        {activeTab === 'receiving' && (
+          <ChecklistSection
+            steps={RECEIVING_STEPS}
+            checked={receivingChecked}
+            onToggle={toggleReceiving}
+            onReset={resetReceiving}
+            completedMsg="收貨流程已全部完成！"
+            completedSub="記得確認品項無誤"
+          />
+        )}
+
+        {/* ═══ TAB 2: SHIPPING ═══ */}
         {activeTab === 'shipping' && (
           <div>
-            {/* Completion Banner */}
-            {allShippingDone && (
-              <div className="bg-brand-green text-white rounded-card p-4 mb-4 text-center animate-fade-in">
-                <div className="text-2xl mb-1">&#127881;</div>
-                <p className="text-sm font-bold">今日出貨流程已全部完成!</p>
-                <p className="text-xs text-white/70 mt-1">辛苦了!</p>
-              </div>
-            )}
+            <ChecklistSection
+              steps={SHIPPING_STEPS}
+              checked={shippingChecked}
+              onToggle={toggleShipping}
+              onReset={resetShipping}
+              completedMsg="今日出貨流程已全部完成！"
+              completedSub="辛苦了！"
+            />
 
-            <ProgressBar done={shippingChecked.size} total={SHIPPING_STEPS.length} />
-
-            {/* Steps */}
-            <div className="space-y-2.5 mb-5">
-              {SHIPPING_STEPS.map((step, i) => {
-                const done = shippingChecked.has(step.id);
-                return (
-                  <button
-                    key={step.id}
-                    onClick={() => toggleShipping(step.id)}
-                    className={`w-full text-left flex items-start gap-3 p-3.5 rounded-card border-2 transition-all
-                      ${done
-                        ? 'bg-brand-green-light border-brand-green/30'
-                        : 'bg-white border-brand-border hover:border-brand-green/40'
-                      }`}
-                  >
-                    {/* Checkbox */}
-                    <div className={`mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all
-                      ${done
-                        ? 'bg-brand-green border-brand-green text-white'
-                        : 'border-gray-300 bg-white'
-                      }`}
-                    >
-                      {done && (
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${done ? 'bg-brand-green/20 text-brand-green' : 'bg-gray-100 text-brand-muted'}`}>
-                          {i + 1}
-                        </span>
-                        <span className={`text-sm font-semibold leading-tight ${done ? 'text-brand-green line-through decoration-brand-green/40' : 'text-brand-text'}`}>
-                          {step.title}
-                        </span>
-                      </div>
-                      {step.sub && (
-                        <p className={`text-xs mt-1 leading-relaxed ${done ? 'text-brand-green/60' : 'text-brand-muted'}`}>
-                          {step.sub}
-                        </p>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Reset */}
-            <button
-              onClick={resetShipping}
-              className="w-full py-2.5 text-xs text-brand-muted border border-brand-border rounded-btn hover:bg-gray-50 transition mb-5"
-            >
-              &#8635; 重置清單
-            </button>
-
-            {/* Exception */}
-            <Collapsible title="庫存不足 / 品項錯誤" emoji="&#9888;&#65039;">
+            <Collapsible title="庫存不足 / 品項錯誤" emoji="⚠️">
               <div className="space-y-2">
-                <div className="flex items-start gap-2">
-                  <span className="text-brand-green font-bold shrink-0">1.</span>
-                  <span>立即回報 LINE 群組，標註品項與數量差異</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-brand-green font-bold shrink-0">2.</span>
-                  <span>確認是否有替代品項可出貨</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-brand-green font-bold shrink-0">3.</span>
-                  <span>更新「出庫記錄表」備註欄位</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-brand-green font-bold shrink-0">4.</span>
-                  <span>通知客戶調整配送內容與時間</span>
-                </div>
+                {[
+                  '立即回報 LINE 群組，標註品項與數量差異',
+                  '確認是否有替代品項可出貨',
+                  '更新「出庫記錄表」備註欄位',
+                  '通知客戶調整配送內容與時間',
+                ].map((text, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <span className="text-brand-green font-bold shrink-0">{i + 1}.</span>
+                    <span>{text}</span>
+                  </div>
+                ))}
               </div>
             </Collapsible>
           </div>
         )}
 
-        {/* ═══ TAB 2: LALAMOVE ═══ */}
-        {activeTab === 'lalamove' && (
-          <div>
-            {/* Completion Banner */}
-            {allLalamoveDone && (
-              <div className="bg-brand-green text-white rounded-card p-4 mb-4 text-center">
-                <div className="text-2xl mb-1">&#127881;</div>
-                <p className="text-sm font-bold">Lalamove 預約流程已完成!</p>
-                <p className="text-xs text-white/70 mt-1">記得回 LINE 群組回傳截圖</p>
-              </div>
-            )}
+        {/* ═══ TAB 3: PACKAGING ═══ */}
+        {activeTab === 'packaging' && (
+          <div className="space-y-6">
 
-            <ProgressBar done={lalamoveChecked.size} total={LALAMOVE_STEPS.length} />
-
-            {/* Steps */}
-            <div className="space-y-2.5 mb-5">
-              {LALAMOVE_STEPS.map((step, i) => {
-                const done = lalamoveChecked.has(step.id);
-                return (
-                  <button
-                    key={step.id}
-                    onClick={() => toggleLalamove(step.id)}
-                    className={`w-full text-left flex items-start gap-3 p-3.5 rounded-card border-2 transition-all
-                      ${done
-                        ? 'bg-brand-green-light border-brand-green/30'
-                        : 'bg-white border-brand-border hover:border-brand-green/40'
-                      }`}
-                  >
-                    {/* Checkbox */}
-                    <div className={`mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all
-                      ${done
-                        ? 'bg-brand-green border-brand-green text-white'
-                        : 'border-gray-300 bg-white'
-                      }`}
-                    >
-                      {done && (
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${done ? 'bg-brand-green/20 text-brand-green' : 'bg-gray-100 text-brand-muted'}`}>
-                          {i + 1}
-                        </span>
-                        <span className={`text-sm font-semibold leading-tight ${done ? 'text-brand-green line-through decoration-brand-green/40' : 'text-brand-text'}`}>
-                          {step.title}
-                        </span>
-                      </div>
-                      {step.sub && (
-                        <div className={`text-xs mt-1 leading-relaxed flex items-center flex-wrap gap-x-1 ${done ? 'text-brand-green/60' : 'text-brand-muted'}`}>
-                          <span>{step.sub}</span>
-                          {step.id === 'l2' && <CopyButton text="台北市松德路118巷3號1樓" />}
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
+            {/* 包材出貨 */}
+            <div>
+              <h2 className="text-sm font-bold text-brand-text mb-3 flex items-center gap-2">
+                <span className="w-7 h-7 bg-brand-green/10 rounded-lg flex items-center justify-center text-base">📤</span>
+                包材出貨 SOP
+              </h2>
+              <ChecklistSection
+                steps={PACKAGING_OUT_STEPS}
+                checked={packagingOutChecked}
+                onToggle={togglePackagingOut}
+                onReset={resetPackagingOut}
+                completedMsg="包材出貨流程完成！"
+                completedSub="記得拍照紀錄"
+              />
             </div>
 
-            {/* Reset */}
-            <button
-              onClick={resetLalamove}
-              className="w-full py-2.5 text-xs text-brand-muted border border-brand-border rounded-btn hover:bg-gray-50 transition mb-5"
-            >
-              &#8635; 重置清單
-            </button>
+            {/* 包材回收 */}
+            <div>
+              <h2 className="text-sm font-bold text-brand-text mb-3 flex items-center gap-2">
+                <span className="w-7 h-7 bg-brand-green/10 rounded-lg flex items-center justify-center text-base">♻️</span>
+                包材回收 SOP
+              </h2>
+              <ChecklistSection
+                steps={PACKAGING_RETURN_STEPS}
+                checked={packagingReturnChecked}
+                onToggle={togglePackagingReturn}
+                onReset={resetPackagingReturn}
+                completedMsg="包材回收流程完成！"
+                completedSub="庫存已更新"
+              />
+            </div>
 
-            {/* Exceptions */}
+          </div>
+        )}
+
+        {/* ═══ TAB 4: LALAMOVE ═══ */}
+        {activeTab === 'lalamove' && (
+          <div>
+            <ChecklistSection
+              steps={LALAMOVE_STEPS}
+              checked={lalamoveChecked}
+              onToggle={toggleLalamove}
+              onReset={resetLalamove}
+              completedMsg="Lalamove 預約流程已完成！"
+              completedSub="記得回 LINE 群組回傳截圖"
+            />
+
             <div className="space-y-3">
-              <Collapsible title="媒合不到司機" emoji="&#128680;">
+              <Collapsible title="媒合不到司機" emoji="🚨">
                 <div className="space-y-2">
-                  <div className="flex items-start gap-2">
-                    <span className="text-brand-green font-bold shrink-0">1.</span>
-                    <span>提高小費金額（建議加 $20~50）</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-brand-green font-bold shrink-0">2.</span>
-                    <span>調整預約時間，避開尖峰時段</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-brand-green font-bold shrink-0">3.</span>
-                    <span>嘗試更換車型（如機車改小貨車）</span>
-                  </div>
+                  {[
+                    '提高小費金額（建議加 $20~50）',
+                    '調整預約時間，避開尖峰時段',
+                    '嘗試更換車型（如機車改小貨車）',
+                  ].map((text, i) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <span className="text-brand-green font-bold shrink-0">{i + 1}.</span>
+                      <span>{text}</span>
+                    </div>
+                  ))}
                 </div>
               </Collapsible>
 
-              <Collapsible title="需要編輯訂單" emoji="&#9999;&#65039;">
+              <Collapsible title="需要編輯訂單" emoji="✏️">
                 <div className="space-y-2">
-                  <div className="flex items-start gap-2">
-                    <span className="text-brand-green font-bold shrink-0">&#8226;</span>
-                    <span><strong>地址有誤</strong> &mdash; 聯繫司機或取消重建訂單</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-brand-green font-bold shrink-0">&#8226;</span>
-                    <span><strong>更改時間</strong> &mdash; 需取消原訂單重新預約</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-brand-green font-bold shrink-0">&#8226;</span>
-                    <span><strong>取消訂單</strong> &mdash; 司機接單前可免費取消</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-brand-green font-bold shrink-0">&#8226;</span>
-                    <span><strong>聯繫客服</strong> &mdash; App 內「幫助中心」或撥打客服專線</span>
-                  </div>
+                  {[
+                    { bold: '地址有誤',  text: '— 聯繫司機或取消重建訂單' },
+                    { bold: '更改時間',  text: '— 需取消原訂單重新預約' },
+                    { bold: '取消訂單',  text: '— 司機接單前可免費取消' },
+                    { bold: '聯繫客服',  text: '— App 內「幫助中心」或撥打客服專線' },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <span className="text-brand-green font-bold shrink-0">•</span>
+                      <span><strong>{item.bold}</strong> {item.text}</span>
+                    </div>
+                  ))}
                 </div>
               </Collapsible>
             </div>
           </div>
         )}
 
-        {/* ═══ TAB 3: REFERENCE ═══ */}
+        {/* ═══ TAB 5: REFERENCE ═══ */}
         {activeTab === 'reference' && (
           <div className="space-y-4">
+
+            {/* LINE 社群 */}
+            <div className="bg-white rounded-card border-2 border-brand-border p-4">
+              <h3 className="text-sm font-bold text-brand-text mb-3 flex items-center gap-2">
+                <span className="w-7 h-7 bg-green-100 rounded-lg flex items-center justify-center text-base">💬</span>
+                LINE 社群
+              </h3>
+              <div className="flex items-center gap-4">
+                <div className="shrink-0">
+                  {/* QR Code generated via qrserver.com */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(LINE_URL)}`}
+                    alt="LINE 社群 QR Code"
+                    width={100}
+                    height={100}
+                    className="rounded-lg border border-gray-100"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-brand-text leading-tight">居家整聊室</p>
+                  <p className="text-xs text-brand-muted mt-0.5">收納品服務</p>
+                  <a
+                    href={LINE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2.5 inline-flex items-center gap-1.5 bg-[#06C755] text-white text-xs font-semibold px-3 py-1.5 rounded-full hover:bg-[#05a847] transition"
+                  >
+                    加入社群
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </div>
 
             {/* 倉庫資訊 */}
             <div className="bg-white rounded-card border-2 border-brand-border p-4">
               <h3 className="text-sm font-bold text-brand-text mb-3 flex items-center gap-2">
-                <span className="w-7 h-7 bg-brand-green/10 rounded-lg flex items-center justify-center text-base">&#127970;</span>
+                <span className="w-7 h-7 bg-brand-green/10 rounded-lg flex items-center justify-center text-base">🏠</span>
                 倉庫資訊
               </h3>
               <div className="space-y-2 text-xs text-brand-text">
@@ -560,7 +734,7 @@ export default function SOPPage() {
             {/* 倉儲商品位置 */}
             <div className="bg-white rounded-card border-2 border-brand-border p-4">
               <h3 className="text-sm font-bold text-brand-text mb-3 flex items-center gap-2">
-                <span className="w-7 h-7 bg-brand-green/10 rounded-lg flex items-center justify-center text-base">&#128205;</span>
+                <span className="w-7 h-7 bg-brand-green/10 rounded-lg flex items-center justify-center text-base">📍</span>
                 倉儲商品位置
               </h3>
               <div className="grid grid-cols-2 gap-2">
@@ -578,40 +752,18 @@ export default function SOPPage() {
               </div>
             </div>
 
-            {/* 出貨方式對照 */}
-            <div className="bg-white rounded-card border-2 border-brand-border p-4">
-              <h3 className="text-sm font-bold text-brand-text mb-3 flex items-center gap-2">
-                <span className="w-7 h-7 bg-brand-green/10 rounded-lg flex items-center justify-center text-base">&#128666;</span>
-                出貨方式對照
-              </h3>
-              <div className="space-y-2">
-                {[
-                  { type: '少件 (1~3件)', method: '整理師自行攜帶', icon: '&#128694;' },
-                  { type: '中件 (4~8件)', method: 'Lalamove 機車', icon: '&#128757;' },
-                  { type: '多件 (9件以上)', method: 'Lalamove 小貨車', icon: '&#128666;' },
-                  { type: 'D系列大件', method: 'Lalamove 廂型車', icon: '&#128667;' },
-                ].map((r) => (
-                  <div key={r.type} className="flex items-center gap-3 bg-gray-50 rounded-lg px-3 py-2.5">
-                    <span className="text-base" dangerouslySetInnerHTML={{ __html: r.icon }} />
-                    <div className="flex-1">
-                      <div className="text-xs font-semibold text-brand-text">{r.type}</div>
-                      <div className="text-[11px] text-brand-muted">{r.method}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
             {/* 常用連結 */}
             <div className="bg-white rounded-card border-2 border-brand-border p-4">
               <h3 className="text-sm font-bold text-brand-text mb-3 flex items-center gap-2">
-                <span className="w-7 h-7 bg-brand-green/10 rounded-lg flex items-center justify-center text-base">&#128279;</span>
+                <span className="w-7 h-7 bg-brand-green/10 rounded-lg flex items-center justify-center text-base">🔗</span>
                 常用連結
               </h3>
               <div className="space-y-2">
                 {[
-                  { label: 'Shopline 後台', url: 'https://admin.shoplineapp.com', emoji: '&#128722;' },
-                  { label: 'Lalamove', url: 'https://www.lalamove.com', emoji: '&#128666;' },
+                  { label: 'Shopline 後台', url: 'https://admin.shoplineapp.com', emoji: '🛒' },
+                  { label: '出庫紀錄表',    url: SHEET_OUTBOUND,                  emoji: '📤' },
+                  { label: '案場總表',      url: SHEET_TOTAL,                     emoji: '📊' },
+                  { label: 'Lalamove',      url: 'https://www.lalamove.com',       emoji: '🚚' },
                 ].map((link) => (
                   <a
                     key={link.label}
@@ -620,20 +772,21 @@ export default function SOPPage() {
                     rel="noopener noreferrer"
                     className="flex items-center gap-3 bg-gray-50 rounded-lg px-3 py-2.5 hover:bg-gray-100 transition group"
                   >
-                    <span className="text-base" dangerouslySetInnerHTML={{ __html: link.emoji }} />
+                    <span className="text-base">{link.emoji}</span>
                     <span className="text-xs font-semibold text-brand-text flex-1">{link.label}</span>
-                    <span className="text-brand-muted text-xs group-hover:text-brand-green transition">&rarr;</span>
+                    <span className="text-brand-muted text-xs group-hover:text-brand-green transition">→</span>
                   </a>
                 ))}
               </div>
             </div>
+
           </div>
         )}
       </main>
 
       {/* ── Footer ── */}
       <footer className="text-center py-4 text-[11px] text-brand-muted border-t border-brand-border mt-auto">
-        GUDO 內部工具 &middot; 僅供工作使用
+        GUDO 內部工具 · 僅供工作使用
       </footer>
     </div>
   );

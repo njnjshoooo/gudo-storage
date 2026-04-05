@@ -1,294 +1,397 @@
-'use client';
-
 import Link from 'next/link';
+import Image from 'next/image';
 
-const packages = [
+/* ─── Product Type ─── */
+interface Product {
+  sku: string;
+  name: string;
+  price: number;
+  w: number;
+  d: number;
+  h: number;
+  desc: string;
+  img?: string;
+  unit?: string;
+  tag?: string;  // series label
+}
+
+/* ─── Product Data (from wavehome.com.tw / 白浪收納品) ─── */
+const CATALOG: Product[] = [
+  /* ── A 系列：衣物收納 ── */
   {
-    id: 1,
-    tag: '👕 方案一',
-    title: '衣物抽屜整理方案',
-    desc: '解決抽屜凌亂、衣物翻找困難。布藝整理盒依抽屜尺寸客製組合，衣架同步升級，整個衣櫃煥然一新。',
-    color: { tag: 'bg-orange-50 text-orange-700', border: 'border-t-4 border-t-orange-500' },
-    products: [
-      { name: '布藝整理盒（小）', size: '14×14×10 cm', price: 'NT$99', qty: '×2–4 個', emoji: '🟫' },
-      { name: '布藝整理盒（中）', size: '14×28×10 cm', price: 'NT$129', qty: '×2–4 個', emoji: '🟫' },
-      { name: '布藝整理盒（大）', size: '28×28×10 cm', price: 'NT$159', qty: '×1–2 個', emoji: '🟫' },
-      { name: '植絨防滑衣架', size: '41.5×0.5×22.5 cm', price: 'NT$99', qty: '×3–5 包', emoji: '👔', img: '/images/products/ABS防滑衣架.png' },
-    ],
-    priceLabel: '2 個抽屜起步',
-    priceFrom: 'NT$ 1,500',
-    priceNote: '衣架升級\n讓吊掛區整潔 80%',
-    scenarios: [
-      { icon: '💡', title: '整聊師現場量測', text: '確認抽屜寬×深×高後，從 5 種標準組合選出最合適的布藝盒配置' },
-      { icon: '👗', title: '衣架一次全換新', text: '顏色不一的衣架換成統一植絨款，視覺效果立竿見影' },
-    ],
-    cta: '📐 輸入我的衣物抽屜尺寸',
-    toolLink: '/tool?type=衣物抽屜',
+    sku: 'A001',
+    name: '布藝整理盒（小）',
+    price: 99,
+    w: 14, d: 14, h: 10,
+    desc: '放小件衣物、配件、襪子',
+    tag: 'A 衣物',
   },
   {
-    id: 2,
-    tag: '🍳 方案二',
-    title: '廚房全面整理方案',
-    desc: '廚房是收納最複雜的空間。抽屜小物、深層板、鍋具一次整理。FINE隔板盒附輪可拉出，再深的層板都搞定。',
-    color: { tag: 'bg-emerald-50 text-emerald-700', border: 'border-t-4 border-t-[#4A7C59]' },
-    products: [
-      { name: 'FINE隔板盒 LF1002', size: '24.3×45×12.8 cm', price: 'NT$349', qty: '深層板必備，附輪', emoji: '🗃️', img: '/images/products/隔板整理盒LF1002.png' },
-      { name: 'FINE隔板盒 LF2004', size: '16.8×30.5×12.7 cm', price: 'NT$219', qty: '廚房抽屜萬用', emoji: '🗃️', img: '/images/products/隔板整理盒LF2004png.png' },
-      { name: '比利整理盒（小）', size: '24×16.8×10.4 cm', price: 'NT$89', qty: '透明可視，×2–3', emoji: '🔲', img: '/images/products/比利.png' },
-      { name: '鍋具鍋蓋收納盒', size: '15×30×18 cm', price: 'NT$199', qty: '直立放鍋蓋', emoji: '🍳' },
-    ],
-    priceLabel: '一般廚房（2抽+2層）',
-    priceFrom: 'NT$ 2,500',
-    priceNote: '廚房整理\n效果最顯著',
-    scenarios: [
-      { icon: '💡', title: '深層板輪式拉盒', text: '60cm 深的廚房層板，從此不必手伸到底翻找' },
-      { icon: '🍜', title: '抽屜分格整理', text: '廚具、調味料、保鮮袋各就各位，煮飯效率翻倍' },
-    ],
-    cta: '📐 輸入我的廚房尺寸',
-    toolLink: '/tool?type=廚房抽屜',
+    sku: 'A002',
+    name: '布藝整理盒（中）',
+    price: 129,
+    w: 14, d: 28, h: 10,
+    desc: '放T恤、內衣、折疊衣物',
+    tag: 'A 衣物',
   },
   {
-    id: 3,
-    tag: '🛏️ 方案三',
-    title: '床底空間利用方案',
-    desc: '床底是最被忽略的收納空間。IRIS 附輪抽屜箱讓換季棉被、備用寢具輕鬆收納、輕鬆取出。',
-    color: { tag: 'bg-blue-50 text-blue-700', border: 'border-t-4 border-t-blue-500' },
-    products: [
-      { name: 'IRIS抽屜箱（小）', size: '40×50×23.5 cm', price: 'NT$559', qty: '附滾輪，床底推薦', emoji: '🗄️', img: '/images/products/抽屜式整理箱1701.png' },
-      { name: 'IRIS抽屜箱（大）', size: '40×50×29.5 cm', price: 'NT$649', qty: '大容量換季首選', emoji: '🗄️', img: '/images/products/抽屜式整理箱3401.png' },
-      { name: 'Keyway抽屜箱 35L', size: '51×44×23 cm', price: 'NT$569', qty: '白色整潔，超大容量', emoji: '🗄️', img: '/images/products/抽屜式整理箱5101.png' },
-      { name: '附蓋棉麻收納箱（大）', size: '50×40×30 cm', price: 'NT$259', qty: '衣物吊掛區下方', emoji: '📦' },
-    ],
-    priceLabel: '雙人床床底（2–3箱）',
-    priceFrom: 'NT$ 1,700',
-    priceNote: '床底淨空高\n≥23 cm 適用',
-    scenarios: [
-      { icon: '❄️', title: '換季棉被不再堆衣櫃', text: '床底抽屜箱完美收納棉被、毛毯，騰出衣櫃空間' },
-      { icon: '🔄', title: '輪式設計，取用超方便', text: '不用搬移床鋪，輕鬆推拉即可取出收納箱' },
-    ],
-    cta: '📐 量我家的床底空間',
-    toolLink: '/tool?type=床底',
+    sku: 'A003',
+    name: '布藝整理盒（大）',
+    price: 159,
+    w: 28, d: 28, h: 10,
+    desc: '放毛衣、厚衣物',
+    tag: 'A 衣物',
   },
   {
-    id: 4,
-    tag: '👔 方案四',
-    title: '衣櫃層板升級方案',
-    desc: '衣櫃層板放衣物容易亂。附蓋棉麻收納箱依尺寸選款，不只整齊，還能防塵保護衣物。',
-    color: { tag: 'bg-purple-50 text-purple-700', border: 'border-t-4 border-t-purple-500' },
-    products: [
-      { name: '附蓋棉麻收納箱（小）', size: '35×28×18 cm', price: 'NT$179', qty: '層板高18–25cm適用', emoji: '📦' },
-      { name: '附蓋棉麻收納箱（中）', size: '40×30×25 cm', price: 'NT$199', qty: '層板高25–30cm適用', emoji: '📦' },
-      { name: '附蓋棉麻收納箱（大）', size: '50×40×30 cm', price: 'NT$259', qty: '棉被外套，30cm+層板', emoji: '📦' },
-      { name: '棉麻折疊儲物盒（大）', size: '28×47×21 cm', price: 'NT$169', qty: '不用時可折疊', emoji: '🧺' },
-    ],
-    priceLabel: '衣櫃層板 3–4 個空格',
-    priceFrom: 'NT$ 2,000',
-    priceNote: '防塵防蟲\n換季無壓力',
-    scenarios: [],
-    cta: '📐 量我的衣櫃層板',
-    toolLink: '/tool?type=衣櫃層板',
+    sku: 'A004',
+    name: '棉麻折疊儲物盒（小）',
+    price: 129,
+    w: 24, d: 41, h: 17,
+    desc: '可折疊，不用時不佔空間',
+    tag: 'A 衣物',
   },
   {
-    id: 5,
-    tag: '🌟 方案五',
-    title: '全室整理套組',
-    desc: '一次整理衣物抽屜＋廚房＋衣櫃層板，是最受歡迎的完整方案。整聊師當天服務，當天下單，隔天出貨。',
-    color: { tag: 'bg-amber-50 text-orange-700', border: 'border-t-4 border-t-amber-500' },
-    products: [],
-    priceLabel: '全室整理（一般3–4房）',
-    priceFrom: 'NT$ 8,000',
-    priceNote: '免運費\n門檻 NT$3,000',
-    scenarios: [
-      { icon: '🗄️', title: '衣物抽屜整理方案', text: '布藝整理盒 2–3 套 ＋ 衣架升級 → 約 NT$1,500–2,500' },
-      { icon: '🍳', title: '廚房全面整理方案', text: 'FINE隔板盒＋比利盒＋鍋具盒 → 約 NT$2,000–3,000' },
-      { icon: '👔', title: '衣櫃層板升級方案', text: '附蓋棉麻箱 3–5 個 → 約 NT$800–1,500' },
-      { icon: '🛏️', title: '床底空間利用', text: 'IRIS抽屜箱 2–3 個 → 約 NT$1,700–2,000' },
-    ],
-    cta: '🌟 輸入全室空間，看總報價',
-    toolLink: '/tool',
-    isSpecial: true,
+    sku: 'A005',
+    name: '棉麻折疊儲物盒（大）',
+    price: 169,
+    w: 28, d: 47, h: 21,
+    desc: '大容量，棉被枕頭皆適合',
+    img: '/images/products/布藝特大號.png',
+    tag: 'A 衣物',
+  },
+  {
+    sku: 'A006',
+    name: '附蓋棉麻收納箱（小）',
+    price: 179,
+    w: 35, d: 28, h: 18,
+    desc: '附蓋防塵，換季衣物',
+    tag: 'A 衣物',
+  },
+  {
+    sku: 'A007',
+    name: '附蓋棉麻收納箱（中）',
+    price: 199,
+    w: 40, d: 30, h: 25,
+    desc: '附蓋防塵，換季衣物',
+    tag: 'A 衣物',
+  },
+  {
+    sku: 'A008',
+    name: '附蓋棉麻收納箱（大）',
+    price: 259,
+    w: 50, d: 40, h: 30,
+    desc: '大容量，棉被外套',
+    tag: 'A 衣物',
+  },
+  {
+    sku: 'A011',
+    name: '植絨防滑衣架（10入）',
+    price: 99,
+    w: 42, d: 1, h: 23,
+    desc: '統一換新，視覺整齊',
+    img: '/images/products/ABS防滑衣架.png',
+    unit: '包',
+    tag: 'A 衣物',
+  },
+
+  /* ── B 系列：小物收納 ── */
+  {
+    sku: 'B003',
+    name: '比利整理盒（小）',
+    price: 89,
+    w: 24, d: 16.8, h: 10.4,
+    desc: '透明可視，廚具、文具整理',
+    img: '/images/products/比利.png',
+    tag: 'B 小物',
+  },
+  {
+    sku: 'B004',
+    name: '比利整理盒（中）',
+    price: 129,
+    w: 33.5, d: 24, h: 14.2,
+    desc: '中型透明盒，多用途',
+    img: '/images/products/比利.png',
+    tag: 'B 小物',
+  },
+  {
+    sku: 'B005',
+    name: '比利整理盒（大）',
+    price: 159,
+    w: 36.5, d: 29.5, h: 17.7,
+    desc: '大型透明盒，廚具層板',
+    img: '/images/products/比利.png',
+    tag: 'B 小物',
+  },
+  {
+    sku: 'B006',
+    name: '你可收納盒 5號',
+    price: 85,
+    w: 13, d: 28, h: 13.5,
+    desc: '輕巧好用，廚房文具皆宜',
+    img: '/images/products/你可5號.png',
+    tag: 'B 小物',
+  },
+  {
+    sku: 'B007',
+    name: '你可收納盒 6號',
+    price: 105,
+    w: 19.6, d: 28, h: 13.5,
+    desc: '稍大，收納更多',
+    img: '/images/products/你可6號.png',
+    tag: 'B 小物',
+  },
+  {
+    sku: 'B009',
+    name: '透明分隔盒（小）',
+    price: 59,
+    w: 7.6, d: 7.6, h: 5.3,
+    desc: '模組化小方格',
+    tag: 'B 小物',
+  },
+  {
+    sku: 'B010',
+    name: '透明分隔盒（中）',
+    price: 69,
+    w: 7.6, d: 15.2, h: 5.3,
+    desc: '長條形，放筆/刷具',
+    tag: 'B 小物',
+  },
+  {
+    sku: 'B011',
+    name: '透明分隔盒（長）',
+    price: 99,
+    w: 7.6, d: 22.9, h: 5.3,
+    desc: '加長版，放筷子/長工具',
+    tag: 'B 小物',
+  },
+  {
+    sku: 'B012',
+    name: '透明分隔盒（大）',
+    price: 109,
+    w: 15.2, d: 22.9, h: 5.3,
+    desc: '大方格，化妝品罐',
+    tag: 'B 小物',
+  },
+  {
+    sku: 'B015',
+    name: 'FINE 隔板整理盒 LF1002',
+    price: 349,
+    w: 24.3, d: 45, h: 12.8,
+    desc: '附輪可拉出，深層板首選',
+    img: '/images/products/隔板整理盒LF1002.png',
+    tag: 'B 小物',
+  },
+  {
+    sku: 'B016',
+    name: 'FINE 隔板整理盒 LF1004',
+    price: 299,
+    w: 16.8, d: 45, h: 12.8,
+    desc: '窄版附輪，深層板整理',
+    img: '/images/products/隔板整理盒LF1004.png',
+    tag: 'B 小物',
+  },
+  {
+    sku: 'B017',
+    name: 'FINE 隔板整理盒 LF2004',
+    price: 219,
+    w: 16.8, d: 30.5, h: 12.7,
+    desc: '中型隔板盒，廚房萬用',
+    img: '/images/products/隔板整理盒LF2004png.png',
+    tag: 'B 小物',
+  },
+  {
+    sku: 'B018',
+    name: '鍋具鍋蓋收納盒',
+    price: 199,
+    w: 15, d: 30, h: 18,
+    desc: '直立放鍋蓋，節省層板空間',
+    tag: 'B 小物',
+  },
+
+  /* ── C 系列：儲物收納 ── */
+  {
+    sku: 'C001',
+    name: 'IRIS 抽屜收納箱（小）',
+    price: 559,
+    w: 40, d: 50, h: 23.5,
+    desc: '附滾輪，床底輕鬆拉出',
+    img: '/images/products/抽屜式整理箱1701.png',
+    tag: 'C 儲物',
+  },
+  {
+    sku: 'C002',
+    name: 'IRIS 抽屜收納箱（大）',
+    price: 649,
+    w: 40, d: 50, h: 29.5,
+    desc: '大容量附輪，換季收納',
+    img: '/images/products/抽屜式整理箱3401.png',
+    tag: 'C 儲物',
+  },
+  {
+    sku: 'C003',
+    name: 'Keyway 抽屜整理箱 35L',
+    price: 569,
+    w: 51, d: 44, h: 23,
+    desc: '白色整潔，大容量',
+    img: '/images/products/抽屜式整理箱5101.png',
+    tag: 'C 儲物',
+  },
+  {
+    sku: 'C005',
+    name: 'Fine 防潮整理箱 55L',
+    price: 599,
+    w: 42.1, d: 58.6, h: 34.2,
+    desc: '超大防潮，換季棉被首選',
+    tag: 'C 儲物',
   },
 ];
 
-function ProductImg({ product }: { product: { img?: string; emoji: string; name: string } }) {
-  if (product.img) {
-    return (
-      <div className="w-full aspect-square rounded-lg bg-[#F5F2EE] flex items-center justify-center mb-1.5 overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={product.img}
-          alt={product.name}
-          className="w-full h-full object-contain"
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.style.display = 'none';
-            const fallback = target.nextElementSibling as HTMLElement;
-            if (fallback) fallback.style.display = 'flex';
-          }}
-        />
-        <div className="w-full aspect-square rounded-lg bg-[#F0EDE8] items-center justify-center text-3xl hidden">
-          {product.emoji}
-        </div>
-      </div>
-    );
-  }
+/* ─── Tag colors ─── */
+const TAG_COLORS: Record<string, string> = {
+  'A 衣物': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  'B 小物': 'bg-blue-50 text-blue-700 border-blue-200',
+  'C 儲物': 'bg-purple-50 text-purple-700 border-purple-200',
+};
+
+/* ─── Product Card ─── */
+function ProductCard({ product }: { product: Product }) {
+  const sizeStr = `${product.w} × ${product.d} × ${product.h} cm`;
+
   return (
-    <div className="w-full aspect-square rounded-lg bg-[#F0EDE8] flex items-center justify-center text-3xl mb-1.5">
-      {product.emoji}
+    <div className="bg-white rounded-2xl border border-[#E8E4DF] overflow-hidden hover:shadow-md transition-shadow">
+      {/* Image */}
+      <div className="bg-[#F7F5F0] aspect-square flex items-center justify-center overflow-hidden">
+        {product.img ? (
+          <Image
+            src={product.img}
+            alt={product.name}
+            width={160}
+            height={160}
+            className="w-full h-full object-contain p-3"
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center gap-1 p-4">
+            <div className="w-12 h-12 rounded-xl bg-[#E8E4DF]" />
+            <div className="w-16 h-2 rounded bg-[#E0DDD8]" />
+          </div>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="p-3">
+        {/* Tag */}
+        {product.tag && (
+          <span className={`inline-block text-[10px] font-bold px-1.5 py-0.5 rounded border mb-1.5 ${TAG_COLORS[product.tag] ?? 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+            {product.tag}
+          </span>
+        )}
+
+        {/* Name */}
+        <p className="text-[13px] font-bold text-[#2C2C2C] leading-tight mb-1">
+          {product.name}
+        </p>
+
+        {/* Price */}
+        <p className="text-[16px] font-extrabold text-[#4A7C59] mb-1">
+          NT${product.price.toLocaleString()}
+          {product.unit && <span className="text-[11px] font-normal text-[#888] ml-1">/ {product.unit}</span>}
+        </p>
+
+        {/* Size */}
+        <p className="text-[11px] text-[#999] mb-1.5">
+          📏 {sizeStr}
+        </p>
+
+        {/* Desc */}
+        <p className="text-[11px] text-[#777] leading-snug">
+          {product.desc}
+        </p>
+      </div>
     </div>
   );
 }
 
-export default function EDMPage() {
+/* ─── Page ─── */
+export default function CatalogPage() {
   return (
-    <div className="min-h-screen">
-      {/* Hero */}
-      <div className="bg-gradient-to-br from-[#2F5E40] via-[#4A7C59] to-[#6BA07A] text-white px-6 py-14 text-center">
-        <div className="inline-block bg-white/20 border border-white/30 rounded-full text-xs font-semibold px-3.5 py-1 tracking-wide mb-4">
-          🏠 白浪收納品 精選方案
-        </div>
-        <h1 className="text-[28px] font-black leading-tight mb-3 tracking-tight">
-          找到對的收納<br />家，就自然清爽
-        </h1>
-        <p className="text-sm opacity-85 leading-relaxed max-w-xs mx-auto mb-6">
-          依照你家的空間類型，整聊師幫你算好尺寸、挑好商品，一次到位
+    <div className="min-h-screen bg-[#F7F5F0]">
+
+      {/* Sticky Header */}
+      <header className="bg-[#4A7C59] text-white px-5 py-3 flex items-center gap-3 sticky top-0 z-50 shadow-md">
+        <Link href="/" className="text-white/80 hover:text-white transition text-sm">&larr;</Link>
+        <h1 className="text-base font-bold tracking-wide">🛍️ 商品型錄</h1>
+      </header>
+
+      {/* Sub header */}
+      <div className="bg-white border-b border-[#E8E4DF] px-5 py-3">
+        <p className="text-xs text-[#888]">
+          白浪收納品 · 共 {CATALOG.length} 款 · 含尺寸 & 售價
         </p>
-        <Link
-          href="/tool"
-          className="inline-flex items-center gap-2 bg-white text-[#2F5E40] px-6 py-3 rounded-full text-sm font-bold shadow-lg hover:shadow-xl transition"
-        >
-          📐 立即輸入尺寸，看我家適合什麼
-        </Link>
       </div>
 
-      {/* Packages */}
-      <div className="max-w-[520px] mx-auto px-4 py-7">
-        <h2 className="text-[22px] font-black tracking-tight mb-1">✨ 五大空間方案</h2>
-        <p className="text-[13px] text-[#888] mb-5 leading-relaxed">
-          從衣物抽屜到床底空間，每種方案都有對應的尺寸組合，整聊師現場確認後即可下單
-        </p>
+      {/* Product Grid */}
+      <main className="max-w-[520px] mx-auto px-4 py-5">
 
-        {packages.map((pkg) => (
-          <div key={pkg.id} className={`bg-white rounded-2xl overflow-hidden mb-5 shadow-md ${pkg.color.border}`}>
-            {/* Header */}
-            <div className="px-5 pt-5 pb-4 border-b border-[#F0EDE8]">
-              <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full tracking-wide mb-2.5 ${pkg.color.tag}`}>
-                {pkg.tag}
-              </span>
-              <h3 className="text-[19px] font-extrabold mb-1 tracking-tight">{pkg.title}</h3>
-              <p className="text-[13px] text-[#777] leading-relaxed">{pkg.desc}</p>
-            </div>
-
-            {/* Body */}
-            <div className="px-5 py-4">
-              {/* Products Grid */}
-              {pkg.products.length > 0 && (
-                <div className="grid grid-cols-2 gap-2.5 mb-3.5">
-                  {pkg.products.map((prod, i) => (
-                    <div key={i} className="border border-[#F0EDE8] rounded-xl p-2.5 text-center bg-[#FAFAFA]">
-                      <ProductImg product={prod} />
-                      <div className="text-[11px] font-semibold leading-tight mb-0.5">{prod.name}</div>
-                      <div className="text-[10px] text-[#AAA] mb-0.5">{prod.size}</div>
-                      <div className="text-[13px] font-bold text-[#4A7C59]">{prod.price}</div>
-                      <div className="text-[10px] text-[#999]">{prod.qty}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Price Bar */}
-              <div className={`flex items-center justify-between rounded-xl px-4 py-3 mb-3.5 ${pkg.isSpecial ? 'bg-gradient-to-r from-amber-50 to-orange-50' : 'bg-[#F7F5F0]'}`}>
-                <div>
-                  <div className="text-[11px] text-[#888] mb-0.5">{pkg.priceLabel}</div>
-                  <div>
-                    <span className={`text-[22px] font-extrabold ${pkg.isSpecial ? 'text-orange-600' : 'text-[#2C2C2C]'}`}>{pkg.priceFrom}</span>
-                    <span className="text-xs text-[#888] ml-0.5">起</span>
-                  </div>
-                </div>
-                <div className={`text-xs text-right whitespace-pre-line ${pkg.isSpecial ? 'text-orange-600 font-bold' : 'text-[#777]'}`}>
-                  {pkg.priceNote}
-                </div>
-              </div>
-
-              {/* Scenarios */}
-              {pkg.scenarios.length > 0 && (
-                <div className="flex flex-col gap-2 mb-3.5">
-                  {pkg.scenarios.map((sc, i) => (
-                    <div key={i} className="bg-[#F7F5F0] rounded-xl px-3.5 py-2.5 flex items-start gap-2.5">
-                      <span className="text-xl flex-shrink-0">{sc.icon}</span>
-                      <div>
-                        <div className="text-[13px] font-semibold mb-0.5">{sc.title}</div>
-                        <div className="text-xs text-[#555] leading-relaxed">{sc.text}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* CTA */}
-              <Link
-                href={pkg.toolLink}
-                className={`flex items-center justify-center gap-2 w-full py-3.5 rounded-xl text-sm font-bold text-white transition ${
-                  pkg.isSpecial
-                    ? 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600'
-                    : 'bg-[#4A7C59] hover:bg-[#3D6A4A]'
-                }`}
-              >
-                {pkg.cta}
-              </Link>
-            </div>
+        {/* A 系列 */}
+        <section className="mb-7">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="w-1.5 h-5 bg-emerald-500 rounded-full" />
+            <h2 className="text-sm font-bold text-[#2C2C2C]">A 系列 — 衣物收納</h2>
           </div>
-        ))}
-      </div>
+          <div className="grid grid-cols-2 gap-3">
+            {CATALOG.filter(p => p.tag === 'A 衣物').map(p => (
+              <ProductCard key={p.sku} product={p} />
+            ))}
+          </div>
+        </section>
 
-      {/* Divider */}
-      <div className="h-2 bg-[#F0EDE8]" />
+        {/* B 系列 */}
+        <section className="mb-7">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="w-1.5 h-5 bg-blue-500 rounded-full" />
+            <h2 className="text-sm font-bold text-[#2C2C2C]">B 系列 — 小物收納</h2>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {CATALOG.filter(p => p.tag === 'B 小物').map(p => (
+              <ProductCard key={p.sku} product={p} />
+            ))}
+          </div>
+        </section>
 
-      {/* Tips */}
-      <div className="max-w-[520px] mx-auto px-4 py-7">
-        <div className="bg-white rounded-2xl p-5">
-          <h3 className="text-[15px] font-bold mb-3 flex items-center gap-2">💡 整聊師採購 3 個關鍵提醒</h3>
-          {[
-            { icon: '📏', title: '量「淨空」不是「開口」', text: '抽屜的高度要量「關起來後的內部可用高度」，通常比外觀矮2–3cm。' },
-            { icon: '🪤', title: '深度留 2cm 容差', text: '商品放進去後要能順暢開關抽屜，深度建議選比量到的尺寸小 2cm 的商品。' },
-            { icon: '🚚', title: '湊 NT$3,000 免運費', text: '若訂單未達免運門檻，建議加購衣架、收納籃等小件商品湊單。' },
-          ].map((tip, i) => (
-            <div key={i} className="flex gap-3 py-2 border-b border-[#F5F2EE] last:border-b-0">
-              <span className="text-xl flex-shrink-0 mt-0.5">{tip.icon}</span>
-              <div>
-                <div className="text-[13px] font-semibold mb-0.5">{tip.title}</div>
-                <div className="text-xs text-[#777] leading-relaxed">{tip.text}</div>
-              </div>
-            </div>
-          ))}
+        {/* C 系列 */}
+        <section className="mb-7">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="w-1.5 h-5 bg-purple-500 rounded-full" />
+            <h2 className="text-sm font-bold text-[#2C2C2C]">C 系列 — 儲物收納</h2>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {CATALOG.filter(p => p.tag === 'C 儲物').map(p => (
+              <ProductCard key={p.sku} product={p} />
+            ))}
+          </div>
+        </section>
+
+        {/* CTA */}
+        <div className="bg-white rounded-2xl p-5 text-center mt-2 border border-[#E8E4DF]">
+          <p className="text-sm font-bold text-[#2C2C2C] mb-1">不確定要選哪款？</p>
+          <p className="text-xs text-[#888] mb-4">輸入你家的空間尺寸，自動推薦最合適的商品組合</p>
+          <Link
+            href="/tool"
+            className="inline-flex items-center gap-2 bg-[#4A7C59] text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-[#3D6A4A] transition"
+          >
+            📐 前往配置工具
+          </Link>
         </div>
-      </div>
-
-      {/* Divider */}
-      <div className="h-2 bg-[#F0EDE8]" />
-
-      {/* Final CTA */}
-      <div className="max-w-[520px] mx-auto px-4 py-10 text-center">
-        <h3 className="text-xl font-extrabold mb-1.5">用工具算算你家的方案</h3>
-        <p className="text-[13px] text-[#888] leading-relaxed mb-5">
-          輸入空間尺寸，自動推薦最適商品<br />整聊師現場使用 / 客戶預約前自測
-        </p>
-        <Link
-          href="/tool"
-          className="inline-flex items-center justify-center gap-2 bg-[#4A7C59] text-white px-6 py-3.5 rounded-xl text-sm font-bold hover:bg-[#3D6A4A] transition max-w-xs w-full"
-        >
-          📐 前往收納配置工具
-        </Link>
-      </div>
+      </main>
 
       {/* Footer */}
-      <footer className="bg-[#2F5E40] text-white py-7 text-center">
-        <div className="text-lg font-bold mb-1.5">🏠 白浪收納</div>
-        <div className="text-xs opacity-70 mb-4">居家整聊室官方選物</div>
+      <footer className="bg-[#2F5E40] text-white py-6 text-center mt-4">
+        <div className="text-sm font-bold mb-1">🏠 白浪收納 × GUDO</div>
+        <div className="text-xs opacity-70 mb-3">居家整聊室官方選物</div>
         <div className="flex justify-center gap-4 flex-wrap">
-          <Link href="/tool" className="text-xs text-white/70 hover:text-white transition">收納配置工具</Link>
+          <Link href="/" className="text-xs text-white/70 hover:text-white transition">首頁</Link>
+          <Link href="/tool" className="text-xs text-white/70 hover:text-white transition">配置工具</Link>
           <Link href="/cases" className="text-xs text-white/70 hover:text-white transition">案例分享</Link>
-          <Link href="/" className="text-xs text-white/70 hover:text-white transition">回首頁</Link>
         </div>
       </footer>
     </div>
