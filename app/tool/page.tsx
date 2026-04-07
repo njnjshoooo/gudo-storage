@@ -3,13 +3,12 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { PRODUCTS, SPACE_TYPES, type Product } from '@/lib/products';
+import { PRODUCTS, type Product } from '@/lib/products';
 
 /* ═══ Types ═══ */
 interface Cabinet {
   id: string;
   name: string;
-  type: string;   // SpaceType id
   w: string;      // '' = unset / any size
   d: string;
   h: string;
@@ -38,14 +37,24 @@ function calcItem(c: Cabinet, qty: number) {
 }
 
 function findProducts(c: Cabinet, qty: number): Product[] {
-  const { iw, id } = calcItem(c, qty);
-  // 所有商品均可互通 — 只依尺寸相符度排序，不以收納類型篩選
+  const cabW = c.w ? Number(c.w) : 100;
+  const slotW = Math.round((cabW / qty) * 10) / 10;
+  const cabD = c.d ? Number(c.d) : null;  // null = user didn't specify
+  const cabH = c.h ? Number(c.h) : null;  // null = user didn't specify
+
   return Object.values(PRODUCTS)
+    .filter(p => {
+      if (p.w > slotW) return false;           // 商品寬度超過格位，放不進去
+      if (cabD && p.d > cabD) return false;    // 商品深度超過空間，放不進去
+      if (cabH && p.h > cabH) return false;    // 商品高度超過空間，放不進去
+      return true;
+    })
     .map(p => ({
       p,
+      // 寬度越接近格位寬度越好（空間利用率高）；深度越接近越好
       score:
-        Math.abs(p.w - iw) / Math.max(iw, 1) +
-        Math.abs(p.d - id) / Math.max(id, 1),
+        (slotW - p.w) / Math.max(slotW, 1) +
+        (cabD ? Math.abs(p.d - cabD) / Math.max(cabD, 1) : 0),
     }))
     .sort((a, b) => a.score - b.score)
     .slice(0, 6)
@@ -204,6 +213,7 @@ function ProductCard({
             width={120}
             height={120}
             className="w-full h-full object-contain p-2"
+            unoptimized={product.img.startsWith('http')}
           />
         ) : (
           <span className="text-3xl">{product.emoji}</span>
@@ -219,7 +229,7 @@ function ProductCard({
           {fmtPrice(product.price)}
         </p>
         <p className="text-[10px] text-brand-muted">
-          {product.w}×{product.d}×{product.h} cm
+          寬{product.w} × 深{product.d} × 高{product.h} cm
         </p>
         <p className="text-[10px] text-brand-muted mt-0.5 leading-tight mb-2">
           {product.desc}
@@ -326,6 +336,7 @@ function QuoteView({
                       width={56}
                       height={56}
                       className="w-full h-full object-contain p-1"
+                      unoptimized={product.img.startsWith('http')}
                     />
                   ) : (
                     <span className="text-2xl">{product.emoji}</span>
@@ -372,6 +383,16 @@ function QuoteView({
               <p className="text-2xl font-extrabold text-brand-green">{fmtPrice(total)}</p>
             </div>
 
+            {/* Order CTA */}
+            <a
+              href="https://www.wavehome.com.tw/pages/boxhill"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-2 bg-brand-green text-white py-3.5 rounded-btn font-bold text-sm hover:bg-brand-green-hover transition"
+            >
+              🛍️ 前往白浪下訂
+            </a>
+
             {/* Clear */}
             <button
               onClick={onClear}
@@ -416,7 +437,6 @@ export default function ToolPage() {
     const newCab: Cabinet = {
       id: uid(),
       name: `收納空間 ${cabs.length + 1}`,
-      type: SPACE_TYPES[0].id,
       w: '', d: '', h: '',
     };
     setCabs(prev => [...prev, newCab]);
@@ -458,7 +478,6 @@ export default function ToolPage() {
 
   /* ──────────── DETAIL VIEW ──────────── */
   if (activeCab) {
-    const st = SPACE_TYPES.find(s => s.id === activeCab.type);
     const { iw, id: iD, ih } = calcItem(activeCab, activeQty);
 
     return (
@@ -500,21 +519,7 @@ export default function ToolPage() {
               />
             </div>
 
-            {/* Type */}
-            <div>
-              <label className="block text-xs font-semibold text-brand-muted mb-1">櫃體類型</label>
-              <select
-                value={activeCab.type}
-                onChange={e => updateCab({ ...activeCab, type: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-brand-border rounded-input bg-brand-bg focus:outline-none focus:ring-2 focus:ring-brand-green"
-              >
-                {SPACE_TYPES.map(s => (
-                  <option key={s.id} value={s.id}>{s.icon} {s.name}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Dimensions — ALL CHINESE */}
+            {/* Dimensions */}
             <div>
               <label className="block text-xs font-semibold text-brand-muted mb-1">
                 空間尺寸 <span className="font-normal">（cm，不填 = 任意尺寸）</span>
@@ -542,9 +547,7 @@ export default function ToolPage() {
                   </div>
                 ))}
               </div>
-              {st?.hint && (
-                <p className="text-[11px] text-brand-muted mt-1.5">{st.hint}</p>
-              )}
+              <p className="text-[11px] text-brand-muted mt-1.5">📏 請量空間的內部淨尺寸（cm），不填代表任意尺寸</p>
             </div>
           </div>
 
@@ -565,7 +568,7 @@ export default function ToolPage() {
             <div className="mt-3 py-2.5 bg-gray-50 rounded-xl text-center">
               <span className="text-[11px] text-brand-muted">各收納品尺寸</span>
               <span className="text-sm font-extrabold text-brand-text ml-2">
-                {iw} × {iD}{ih ? ` × ${ih}` : ''} cm
+                寬{iw} × 深{iD}{ih ? ` × 高${ih}` : ''} cm
               </span>
             </div>
 
@@ -611,16 +614,25 @@ export default function ToolPage() {
                   </button>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                {matchedProducts.map(p => (
-                  <ProductCard
-                    key={p.sku}
-                    product={p}
-                    cartQty={cart[p.sku] ?? 0}
-                    onSetQty={setCartQty}
-                  />
-                ))}
-              </div>
+              {matchedProducts.length === 0 ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-card p-4 text-center">
+                  <p className="text-sm text-amber-800 font-semibold mb-1">😅 目前尺寸下沒有符合的收納品</p>
+                  <p className="text-xs text-amber-600 leading-relaxed">
+                    請確認空間尺寸是否正確，或調整數量試試看
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {matchedProducts.map(p => (
+                    <ProductCard
+                      key={p.sku}
+                      product={p}
+                      cartQty={cart[p.sku] ?? 0}
+                      onSetQty={setCartQty}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -657,7 +669,7 @@ export default function ToolPage() {
     <div className="min-h-screen bg-brand-bg flex flex-col">
       <header className="bg-brand-green text-white px-5 py-3 flex items-center gap-3 sticky top-0 z-50 shadow-md">
         <Link href="/" className="text-white/80 hover:text-white transition text-sm">&larr;</Link>
-        <h1 className="text-base font-bold tracking-wide flex-1">🗄️ 收納品配置工具</h1>
+        <h1 className="text-base font-bold tracking-wide flex-1">🗄️ 收納品配置工具（功能測試中）</h1>
         {/* Cart badge */}
         {cartCount > 0 && (
           <button
@@ -694,7 +706,6 @@ export default function ToolPage() {
           <div>
             <div className="space-y-3 mb-4">
               {cabs.map(cab => {
-                const st  = SPACE_TYPES.find(s => s.id === cab.type);
                 const qty = qtyMap[cab.id] ?? 3;
                 const { iw, id: iD } = calcItem(cab, qty);
                 const configured = qtySelected.has(cab.id);
@@ -704,15 +715,13 @@ export default function ToolPage() {
                     onClick={() => setActiveCabId(cab.id)}
                     className="w-full text-left bg-white rounded-card border-2 border-brand-border hover:border-brand-green/50 hover:shadow-sm transition-all p-4 flex items-center gap-3 active:scale-[0.98]"
                   >
-                    <span className="text-2xl shrink-0">{st?.icon ?? '🗄️'}</span>
+                    <span className="text-2xl shrink-0">🗄️</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-brand-text truncate">{cab.name}</p>
-                      <p className="text-[11px] text-brand-muted mt-0.5">
-                        {st?.name} · {dimSummary(cab)}
-                      </p>
+                      <p className="text-[11px] text-brand-muted mt-0.5">{dimSummary(cab)}</p>
                       {configured && (
                         <p className="text-[11px] text-brand-green mt-0.5">
-                          {qty} 個配置 · 每個約 {iw} × {iD} cm ✓
+                          {qty} 個配置 · 每個約 寬{iw} × 深{iD} cm ✓
                         </p>
                       )}
                     </div>
