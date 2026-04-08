@@ -10,16 +10,17 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          green: '#4A7C59',
-          'green-hover': '#6A9B78',
-          'green-light': '#E8F0EA',
-          'green-dark': '#2F5E40',
-          bg: '#F7F5F0',
+          green: '#8C5726',          // GUDO brand warm brown (primary)
+          'green-hover': '#A56830',  // lighter brown hover
+          'green-light': '#F0E4D4',  // light warm sand
+          'green-dark': '#5C3618',   // dark warm brown (header/footer)
+          bg: '#F5F0EB',             // warm cream background
           text: '#2C2C2C',
           muted: '#888888',
           yellow: '#F5A623',
           red: '#D0454C',
-          border: '#DDD8CF',
+          border: '#DCCFC3',         // warm border
+          teal: '#4A8A96',           // GUDO secondary teal
         },
       },
       fontFamily: {

@@ -7,6 +7,7 @@ export type JournalEntry = {
   content: string;
   date: string; // YYYY-MM-DD
   emoji?: string;
+  image_url?: string | null;
 };
 
 // Lazy singleton — only created when env vars are present

@@ -8,8 +8,7 @@ const LINE_URL =
   'https://line.me/ti/g2/JcZee_vl2-n3EhXlG7b85pq-B1plT9ry93GwbQ?utm_source=invitation&utm_medium=link_copy&utm_campaign=default';
 const SHEET_OUTBOUND =
   'https://docs.google.com/spreadsheets/d/1a_x33oSam-IlvYxVPZoNCC3bVuiFzJMqe9DsTjEO5ZI/edit?gid=689219061#gid=689219061';
-const SHEET_TOTAL =
-  'https://docs.google.com/spreadsheets/d/1U4Izfos-DVgIKObJ1xaHiK-eiN-gc9h9jTRSZ4wuerk/edit?gid=1637426536#gid=1637426536';
+const GUDO_BOT_URL = 'https://lin.ee/XTiiDj1';
 
 /* ─── Types ─── */
 type Tab = 'reference' | 'shipping' | 'packaging' | 'lalamove';
@@ -20,58 +19,68 @@ interface Step {
   sub?: string;
   link?: { label: string; url: string };
   imgPlaceholder?: string;
+  copyText?: string;
+  images?: string[];   // static instructional images (carousel if length > 1)
 }
 
 /* ─── Step Data ─── */
 
-// 出貨 SOP (收貨 + 出貨合併，刪除 r1，s2/s3 已交換)
 const SHIPPING_STEPS: Step[] = [
   {
-    id: 'r2',
-    title: '至 iPad 開啟 SHOPLINE',
-    imgPlaceholder: 'SHOPLINE 開啟畫面',
-  },
-  {
-    id: 'r3',
-    title: '點選【訂單】，選擇該筆訂單',
-    imgPlaceholder: '訂單列表畫面',
-  },
-  {
-    id: 'r4',
-    title: '點選【商品詳情】，確認品項與數量',
-    imgPlaceholder: '商品詳情畫面',
-  },
-  {
     id: 's1',
-    title: '接到主整拍照上傳的訂單',
-    sub: 'LINE群組：收納品服務-居家整聊室',
+    title: '至辦公室拿取店面工具包',
+    sub: 'iPad、大門遙控器',
+  },
+  {
+    id: 's2',
+    title: '開店、開燈、冷氣操作',
   },
   {
     id: 's3',
+    title: '接到群組拍照上傳的訂單',
+    sub: 'LINE群組：收納品服務-居家整聊室',
+    images: ['/images/sop/order-1.jpg', '/images/sop/order-2.jpg', '/images/sop/order-3.jpg'],
+  },
+  {
+    id: 's4',
+    title: '至 iPad 開啟 Shopline APP',
+    images: ['/images/sop/shopline-open.png'],
+  },
+  {
+    id: 's5',
+    title: 'Shopline 中點選【訂單】分頁，選擇要揀貨的訂單',
+    images: ['/images/sop/shopline-orders.png'],
+  },
+  {
+    id: 's6',
+    title: '點選【商品詳情】查看品項與數量',
+    sub: '請在1F先刷新確認，以免地下室網路不穩',
+    images: ['/images/sop/shopline-items.png'],
+  },
+  {
+    id: 's7',
     title: '根據訂單進行撿貨和包裝',
     sub: 'A系列（衣物）、B系列（小物）、C系列（儲物）、D系列（大件）',
   },
   {
-    id: 's2',
-    title: '填寫出庫紀錄表',
-    sub: '填入出貨日期、品項、數量、案場資訊',
-    link: { label: '📋 開啟出庫紀錄表', url: SHEET_OUTBOUND },
+    id: 's8',
+    title: '使用 Lalamove 叫車',
   },
   {
-    id: 's4',
-    title: '將貨物交給 Lalamove 司機，並拍照紀錄',
+    id: 's9',
+    title: '將貨物交給 Lalamove 司機，並拍照記錄',
   },
   {
-    id: 's5',
+    id: 's10',
     title: '於收納品 LINE 群組回傳資訊',
-    sub: '照片 / Lalamove 追蹤連結 / 訂單金額',
-    imgPlaceholder: '群組回傳範例圖',
+    sub: '照片 / Lalamove 追蹤連結',
+    images: ['/images/sop/line-reply-1.jpg', '/images/sop/line-reply-2.jpg', '/images/sop/line-reply-3.png'],
   },
   {
-    id: 's6',
-    title: '將訂單金額回填至案場總表',
-    sub: '填入「收納品金額」欄位',
-    link: { label: '📊 開啟案場總表', url: SHEET_TOTAL },
+    id: 's11',
+    title: '至 GUDO小幫手 LINE@ 登錄進出貨',
+    sub: '練習格式：進貨 G1000 [數量]、出貨 G1000 [數量]\n查看庫存機器人使用說明，請於LINE@輸入【說明】',
+    link: { label: '🤖 開啟 GUDO小幫手', url: GUDO_BOT_URL },
   },
 ];
 
@@ -118,16 +127,49 @@ const PACKAGING_RETURN_STEPS: Step[] = [
 ];
 
 const LALAMOVE_STEPS: Step[] = [
-  { id: 'l1', title: '登入Lalamove企業帳號' },
-  { id: 'l2', title: '設定收貨地點（起點）', sub: '台北市松德路118巷3號1樓' },
-  { id: 'l3', title: '輸入送達地點（終點）' },
-  { id: 'l4', title: '選擇車型', sub: '機車 / 小貨車 / 廂型車' },
-  { id: 'l5', title: '設定收貨時間', sub: '服務結束前2小時' },
-  { id: 'l6', title: '確認付款方式 → 送出訂單', sub: '企業錢包' },
+  {
+    id: 'l1',
+    title: '登入 Lalamove 企業帳號',
+    sub: '備註：使用 iPad 或手機 APP\n帳號：100027185670\n密碼：55784792',
+  },
+  {
+    id: 'l2',
+    title: '設定取件地點（起點）',
+    sub: 'GUDO 門市地址',
+    copyText: '台北市信義區松德路118巷3號1樓',
+  },
+  {
+    id: 'l3',
+    title: '輸入送件地點（終點）',
+    sub: '填寫服務地址；聯絡人填主整的姓名及電話',
+  },
+  {
+    id: 'l4',
+    title: '選擇車型',
+    sub: '機車 / 小貨車 / 廂型車',
+  },
+  {
+    id: 'l5',
+    title: '設定取貨時間',
+    sub: '預設「服務結束前 2 小時」，特殊需求依個案討論\n例：服務 16:00 結束 → 主整 13:00 給單截止 → 13:00–13:15 撿貨 → 13:20 司機收貨',
+  },
+  {
+    id: 'l6',
+    title: '物品很多時：輸入備註（選填）',
+    copyText: '希望是發財車，運送物品為家居收納用品，謝謝！',
+  },
+  {
+    id: 'l7',
+    title: '付款方式選擇「錢包付款」',
+  },
+  {
+    id: 'l8',
+    title: '點擊「下訂單」完成預約',
+  },
 ];
 
 /* ─── Auth / Storage ─── */
-const PASSWORD = 'gudo2026';
+const PASSWORD = 'GUDO2026';
 const LS_AUTH_KEY = 'gudo-sop-auth';
 const LS_IMAGES_KEY = 'gudo-sop-images';
 
@@ -166,7 +208,7 @@ function ProgressBar({ done, total }: { done: number; total: number }) {
   return (
     <div className="mb-4">
       <div className="flex justify-between items-center mb-1.5">
-        <span className="text-xs font-semibold text-brand-text">進度</span>
+        <span className="text-xs font-semibold text-brand-text">學習進度</span>
         <span className="text-xs font-bold text-brand-green">{done}/{total}</span>
       </div>
       <div className="w-full h-2.5 bg-brand-green/10 rounded-full overflow-hidden">
@@ -199,13 +241,76 @@ function Collapsible({ title, emoji, children }: { title: string; emoji: string;
   );
 }
 
+/* ─── Image Carousel ─── */
+function ImageCarousel({ images, alt }: { images: string[]; alt: string }) {
+  const [current, setCurrent] = useState(0);
+  const touchStartX = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    if (dx < -40 && current < images.length - 1) setCurrent(c => c + 1);
+    if (dx > 40 && current > 0) setCurrent(c => c - 1);
+    touchStartX.current = null;
+  };
+
+  return (
+    <div
+      className="relative rounded-xl overflow-hidden border border-brand-green/20"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={images[current]} alt={`${alt} ${current + 1}`} className="w-full" />
+
+      {images.length > 1 && (
+        <>
+          {/* Counter badge */}
+          <div className="absolute top-2 right-2 bg-black/50 text-white text-[10px] px-2 py-0.5 rounded-full font-medium">
+            {current + 1}/{images.length}
+          </div>
+          {/* Prev arrow */}
+          {current > 0 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setCurrent(c => c - 1); }}
+              className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white w-8 h-8 rounded-full flex items-center justify-center text-xl leading-none transition"
+            >
+              ‹
+            </button>
+          )}
+          {/* Next arrow */}
+          {current < images.length - 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setCurrent(c => c + 1); }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white w-8 h-8 rounded-full flex items-center justify-center text-xl leading-none transition"
+            >
+              ›
+            </button>
+          )}
+          {/* Dot indicators */}
+          <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5 pointer-events-none">
+            {images.map((_, i) => (
+              <span
+                key={i}
+                className={`w-1.5 h-1.5 rounded-full transition-all ${i === current ? 'bg-white scale-125' : 'bg-white/50'}`}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 /* ─── Step Card with Image Upload ─── */
 function StepCard({
   step,
   index,
   done,
   onToggle,
-  showCopyAddress,
   imageData,
   onImageUpload,
 }: {
@@ -213,7 +318,6 @@ function StepCard({
   index: number;
   done: boolean;
   onToggle: () => void;
-  showCopyAddress?: boolean;
   imageData?: string;
   onImageUpload?: (dataUrl: string) => void;
 }) {
@@ -263,13 +367,17 @@ function StepCard({
               {step.title}
             </span>
           </div>
-          {step.sub && (
-            <div
-              className={`text-xs mt-1 leading-relaxed flex items-center flex-wrap gap-x-1
-                ${done ? 'text-brand-green/60' : 'text-brand-muted'}`}
-            >
-              <span>{step.sub}</span>
-              {showCopyAddress && <CopyButton text="台北市松德路118巷3號1樓" />}
+          {(step.sub || step.copyText) && (
+            <div className={`text-xs mt-1 leading-relaxed space-y-0.5 ${done ? 'text-brand-green/60' : 'text-brand-muted'}`}>
+              {step.sub && (
+                <p className="whitespace-pre-line">{step.sub}</p>
+              )}
+              {step.copyText && (
+                <div className="flex items-start gap-x-1 flex-wrap">
+                  <span className="italic">「{step.copyText}」</span>
+                  <CopyButton text={step.copyText} />
+                </div>
+              )}
             </div>
           )}
           {step.link && (
@@ -289,14 +397,20 @@ function StepCard({
         </div>
       </button>
 
-      {/* Image section (only for steps with imgPlaceholder) */}
-      {step.imgPlaceholder && (
+      {/* Static image carousel */}
+      {step.images && step.images.length > 0 && (
+        <div className="px-3.5 pb-3.5">
+          <ImageCarousel images={step.images} alt={step.title} />
+        </div>
+      )}
+
+      {/* User-uploadable image (only for steps with imgPlaceholder and no static images) */}
+      {step.imgPlaceholder && !step.images && (
         <div className="px-3.5 pb-3.5">
           {imageData ? (
-            /* Uploaded image preview */
             <div className="relative rounded-xl overflow-hidden border border-brand-green/20">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imageData} alt={step.imgPlaceholder} className="w-full object-cover max-h-48" />
+              <img src={imageData} alt={step.imgPlaceholder} className="w-full" />
               {onImageUpload && (
                 <button
                   onClick={(e) => { e.stopPropagation(); fileRef.current?.click(); }}
@@ -307,7 +421,6 @@ function StepCard({
               )}
             </div>
           ) : (
-            /* Placeholder / upload area */
             <div
               className={`bg-gray-50 border-2 border-dashed rounded-xl py-5 flex flex-col items-center gap-1.5 transition-colors
                 ${onImageUpload ? 'border-brand-green/30 hover:border-brand-green/60 cursor-pointer' : 'border-gray-200'}`}
@@ -322,7 +435,6 @@ function StepCard({
               )}
             </div>
           )}
-          {/* Hidden file input */}
           {onImageUpload && (
             <input
               ref={fileRef}
@@ -381,7 +493,6 @@ function ChecklistSection({
             index={i}
             done={checked.has(step.id)}
             onToggle={() => onToggle(step.id)}
-            showCopyAddress={step.id === 'l2'}
             imageData={stepImages?.[step.id]}
             onImageUpload={onImageUpload ? (dataUrl) => onImageUpload(step.id, dataUrl) : undefined}
           />
@@ -410,9 +521,7 @@ export default function SOPPage() {
   const [packagingReturnChecked, setPackagingReturnChecked] = useState<Set<string>>(new Set());
   const [lalamoveChecked, setLalamoveChecked] = useState<Set<string>>(new Set());
 
-  // Step images: { stepId: base64DataUrl }
   const [stepImages, setStepImages] = useState<Record<string, string>>({});
-
   const [mounted, setMounted] = useState(false);
 
   /* ── Init ── */
@@ -420,10 +529,8 @@ export default function SOPPage() {
     setMounted(true);
     if (typeof window === 'undefined') return;
 
-    // Auth check
     if (localStorage.getItem(LS_AUTH_KEY) === 'true') setAuthenticated(true);
 
-    // Load today's checklist state
     const prefixSetterPairs: [string, Dispatch<SetStateAction<Set<string>>>][] = [
       ['shipping', setShippingChecked],
       ['packaging-out', setPackagingOutChecked],
@@ -438,13 +545,11 @@ export default function SOPPage() {
       } catch { /* ignore */ }
     });
 
-    // Load step images (persistent, not date-keyed)
     try {
       const imgs = localStorage.getItem(LS_IMAGES_KEY);
       if (imgs) setStepImages(JSON.parse(imgs) as Record<string, string>);
     } catch { /* ignore */ }
 
-    // Clean up old day keys
     const today = getTodayKey();
     const toRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
@@ -534,7 +639,7 @@ export default function SOPPage() {
       <div className="min-h-screen bg-brand-bg flex flex-col">
         <header className="bg-brand-green text-white px-5 py-3 flex items-center gap-3 sticky top-0 z-50 shadow-md">
           <Link href="/" className="text-white/80 hover:text-white transition text-sm">&larr;</Link>
-          <h1 className="text-base font-bold tracking-wide">📦 進出貨 SOP</h1>
+          <h1 className="text-base font-bold tracking-wide">📖 進出貨教學</h1>
         </header>
 
         <div className="flex-1 flex items-center justify-center px-6">
@@ -542,7 +647,7 @@ export default function SOPPage() {
             <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
               <div className="w-14 h-14 bg-brand-green/10 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">🔒</div>
               <h2 className="text-lg font-bold text-brand-text mb-1">店員專區</h2>
-              <p className="text-xs text-brand-muted mb-6">請輸入密碼以查看進出貨 SOP</p>
+              <p className="text-xs text-brand-muted mb-6">請輸入密碼以查看門市日誌</p>
 
               <input
                 type="password"
@@ -576,7 +681,7 @@ export default function SOPPage() {
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'reference',  label: '📋 常用資訊' },
-    { key: 'shipping',   label: '📦 出貨'     },
+    { key: 'shipping',   label: '📦 進出貨'   },
     { key: 'packaging',  label: '🗃️ 包材'     },
     { key: 'lalamove',   label: '🚚 Lalamove' },
   ];
@@ -588,12 +693,12 @@ export default function SOPPage() {
       <header className="bg-brand-green text-white px-5 py-3 flex items-center justify-between sticky top-0 z-50 shadow-md">
         <div className="flex items-center gap-3">
           <Link href="/" className="text-white/80 hover:text-white transition text-sm">&larr;</Link>
-          <h1 className="text-base font-bold tracking-wide">📦 進出貨 SOP</h1>
+          <h1 className="text-base font-bold tracking-wide">📖 進出貨教學</h1>
         </div>
         <span className="text-xs text-white/70">{todayDisplay} (週{weekday})</span>
       </header>
 
-      {/* ── Tab Nav (scrollable, 4 tabs) ── */}
+      {/* ── Tab Nav ── */}
       <nav className="bg-white border-b border-brand-border sticky top-[52px] z-40">
         <div
           className="max-w-[480px] mx-auto flex overflow-x-auto"
@@ -618,7 +723,7 @@ export default function SOPPage() {
       {/* ── Content ── */}
       <main className="flex-1 max-w-[480px] w-full mx-auto px-4 py-5">
 
-        {/* ═══ TAB 1: 常用資訊 (原 reference) ═══ */}
+        {/* ═══ TAB 1: 常用資訊 ═══ */}
         {activeTab === 'reference' && (
           <div className="space-y-4">
 
@@ -657,17 +762,57 @@ export default function SOPPage() {
               </div>
             </div>
 
-            {/* 倉庫資訊 */}
+            {/* GUDO 小幫手 */}
+            <div className="bg-white rounded-card border-2 border-brand-border p-4">
+              <h3 className="text-sm font-bold text-brand-text mb-3 flex items-center gap-2">
+                <span className="w-7 h-7 bg-brand-teal/10 rounded-lg flex items-center justify-center text-base">🤖</span>
+                GUDO 小幫手
+              </h3>
+              <div className="flex items-center gap-4">
+                <div className="shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(GUDO_BOT_URL)}`}
+                    alt="GUDO 小幫手 QR Code"
+                    width={100}
+                    height={100}
+                    className="rounded-lg border border-gray-100"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-brand-text leading-tight">GUDO 小幫手</p>
+                  <p className="text-xs text-brand-muted mt-0.5">進出貨登記幫手</p>
+                  <a
+                    href={GUDO_BOT_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2.5 inline-flex items-center gap-1.5 bg-[#06C755] text-white text-xs font-semibold px-3 py-1.5 rounded-full hover:bg-[#05a847] transition"
+                  >
+                    開啟小幫手
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+              <div className="mt-3 bg-brand-bg rounded-lg px-3 py-2 text-[11px] text-brand-muted leading-relaxed space-y-0.5">
+                <p>📦 進貨：<span className="font-mono font-semibold text-brand-text">進貨 G1000 [數量]</span></p>
+                <p>📤 出貨：<span className="font-mono font-semibold text-brand-text">出貨 G1000 [數量]</span></p>
+                <p>🔍 查看說明：輸入【說明】</p>
+              </div>
+            </div>
+
+            {/* GUDO 門市資訊 */}
             <div className="bg-white rounded-card border-2 border-brand-border p-4">
               <h3 className="text-sm font-bold text-brand-text mb-3 flex items-center gap-2">
                 <span className="w-7 h-7 bg-brand-green/10 rounded-lg flex items-center justify-center text-base">🏠</span>
-                倉庫資訊
+                GUDO 門市資訊
               </h3>
               <div className="space-y-2 text-xs text-brand-text">
                 <div className="flex items-start gap-2">
                   <span className="text-brand-muted shrink-0 w-12">地址</span>
                   <span className="flex-1">台北市信義區松德路118巷3號1樓(B1)</span>
-                  <CopyButton text="台北市信義區松德路118巷3號1樓(B1)" />
+                  <CopyButton text="台北市信義區松德路118巷3號1樓" />
                 </div>
               </div>
             </div>
@@ -680,10 +825,10 @@ export default function SOPPage() {
               </h3>
               <div className="space-y-2">
                 {[
-                  { label: 'Shopline 後台', url: 'https://admin.shoplineapp.com', emoji: '🛒' },
-                  { label: '出庫紀錄表',    url: SHEET_OUTBOUND,                  emoji: '📤' },
-                  { label: '案場總表',      url: SHEET_TOTAL,                     emoji: '📊' },
-                  { label: 'Lalamove',      url: 'https://www.lalamove.com',       emoji: '🚚' },
+                  { label: 'Shopline 後台',   url: 'https://admin.shoplineapp.com', emoji: '🛒' },
+                  { label: '出庫紀錄表',       url: SHEET_OUTBOUND,                  emoji: '📤' },
+                  { label: 'Lalamove',         url: 'https://www.lalamove.com',       emoji: '🚚' },
+                  { label: '出貨SOP簡報版',    url: 'https://docs.google.com/presentation/d/1PV_iDYYm4w6WwJVtmj4irQl2nV2Arco4L0j3mXx-rXU/edit?usp=sharing', emoji: '📋' },
                 ].map((link) => (
                   <a
                     key={link.label}
@@ -703,7 +848,7 @@ export default function SOPPage() {
           </div>
         )}
 
-        {/* ═══ TAB 2: 出貨 (收貨+出貨合併) ═══ */}
+        {/* ═══ TAB 2: 進出貨 ═══ */}
         {activeTab === 'shipping' && (
           <div>
             <ChecklistSection
@@ -711,7 +856,7 @@ export default function SOPPage() {
               checked={shippingChecked}
               onToggle={toggleShipping}
               onReset={resetShipping}
-              completedMsg="今日出貨流程已全部完成！"
+              completedMsg="今日進出貨流程已全部完成！"
               completedSub="辛苦了！"
               stepImages={stepImages}
               onImageUpload={handleImageUpload}
@@ -803,18 +948,23 @@ export default function SOPPage() {
               </Collapsible>
 
               <Collapsible title="需要編輯訂單" emoji="✏️">
-                <div className="space-y-2">
-                  {[
-                    { bold: '地址有誤',  text: '— 聯繫司機或取消重建訂單' },
-                    { bold: '更改時間',  text: '— 需取消原訂單重新預約' },
-                    { bold: '取消訂單',  text: '— 司機接單前可免費取消' },
-                    { bold: '聯繫客服',  text: '— App 內「幫助中心」或撥打客服專線' },
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-start gap-2">
-                      <span className="text-brand-green font-bold shrink-0">•</span>
-                      <span><strong>{item.bold}</strong> {item.text}</span>
-                    </div>
-                  ))}
+                <div className="space-y-2.5">
+                  <div className="flex items-start gap-2">
+                    <span className="text-brand-green font-bold shrink-0">•</span>
+                    <span>每筆訂單只能<strong>自行編輯一次</strong>，第二次起須聯繫客服修改</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-brand-green font-bold shrink-0">•</span>
+                    <span>尚未媒合到司機時，可直接<strong>取消重新下單</strong>（免費取消）</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-brand-green font-bold shrink-0">•</span>
+                    <span>司機已收貨（狀態變「配送中」）→ <strong>不能自行編輯</strong>，須聯繫客服</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-amber-600 font-bold shrink-0">⚠️</span>
+                    <span>客服回應速度不一（實測 5～30 分鐘），<strong>盡量減少編輯訂單</strong></span>
+                  </div>
                 </div>
               </Collapsible>
             </div>
