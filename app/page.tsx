@@ -5,21 +5,21 @@ const tools = [
   {
     icon: '🗄️',
     title: '收納品配置工具',
-    desc: '輸入空間尺寸，推薦最合適的收納品組合',
+    desc: '輸入空間尺寸，推薦最合適的收納品（功能測試中）',
     href: '/tool',
     accent: 'emerald',
   },
   {
     icon: '🛍️',
     title: '商品型錄',
-    desc: '所有收納品一次瀏覽，含售價與尺寸',
+    desc: '所有收納品一次瀏覽，含售價與尺寸（功能測試中）',
     href: '/edm',
     accent: 'blue',
   },
   {
-    icon: '📦',
-    title: '進出貨 SOP',
-    desc: '出貨清單 · Lalamove 流程 · 常用資訊',
+    icon: '📖',
+    title: '進出貨教學',
+    desc: '進出貨流程 · Lalamove · 常用資訊',
     href: '/sop',
     accent: 'amber',
     locked: true,
@@ -30,6 +30,13 @@ const tools = [
     desc: '店員每日交接筆記，共享今日狀況',
     href: '/journal',
     accent: 'purple',
+  },
+  {
+    icon: '🏪',
+    title: '門市使用導覽',
+    desc: '物品擺放位置 · 門市小守則',
+    href: '/store',
+    accent: 'teal',
   },
 ];
 
@@ -53,6 +60,11 @@ const accentMap: Record<string, { card: string; dot: string; icon: string }> = {
     card: 'hover:border-purple-300 hover:bg-purple-50/50',
     dot:  'bg-purple-400',
     icon: 'bg-purple-50 text-purple-700',
+  },
+  teal: {
+    card: 'hover:border-teal-300 hover:bg-teal-50/50',
+    dot:  'bg-teal-400',
+    icon: 'bg-teal-50 text-teal-700',
   },
 };
 
@@ -160,7 +172,7 @@ export default function Home() {
               fill
               className="object-cover object-center"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#2F5E40]/85 to-[#2F5E40]/30" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#5C3618]/85 to-[#5C3618]/30" />
           </div>
           <div className="absolute inset-0 flex flex-col justify-center px-5">
             <p className="text-white/80 text-[10px] font-semibold tracking-widest uppercase mb-1">
@@ -169,18 +181,20 @@ export default function Home() {
             <h2 className="text-white text-base font-extrabold leading-snug mb-2">
               讓每一個空間<br />回到它最好的樣子
             </h2>
-            <Link
-              href="/edm"
+            <a
+              href="https://www.wavehome.com.tw/pages/boxhill"
+              target="_blank"
+              rel="noopener noreferrer"
               className="self-start text-[11px] font-bold text-white bg-white/20 border border-white/30 px-3 py-1.5 rounded-full hover:bg-white/30 transition"
             >
-              查看商品型錄 →
-            </Link>
+              前往下訂商品 →
+            </a>
           </div>
         </div>
       </section>
 
       {/* ── FOOTER ── */}
-      <footer className="bg-[#2F5E40] text-white py-6 text-center mt-2">
+      <footer className="bg-[#5C3618] text-white py-6 text-center mt-2">
         <div className="text-sm font-bold mb-1">🏠 白浪收納 × GUDO</div>
         <div className="text-xs opacity-60 mb-3">居家整聊室官方選物</div>
         <div className="flex justify-center gap-4 flex-wrap text-xs text-white/60">
