@@ -169,7 +169,7 @@ const LALAMOVE_STEPS: Step[] = [
 ];
 
 /* ─── Auth / Storage ─── */
-const PASSWORD = 'GUDO2026';
+const PASSWORD = '2026gudo';
 const LS_AUTH_KEY = 'gudo-sop-auth';
 const LS_IMAGES_KEY = 'gudo-sop-images';
 
@@ -608,7 +608,7 @@ export default function SOPPage() {
   /* ── Auth handler ── */
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === PASSWORD) {
+    if (password.toLowerCase() === PASSWORD) {
       setAuthenticated(true);
       localStorage.setItem(LS_AUTH_KEY, 'true');
       setPwError(false);

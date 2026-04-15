@@ -70,7 +70,7 @@ async function compressImage(file: File, maxSize = 900): Promise<string> {
 const EMOJIS = ['📝', '✅', '⚠️', '💡', '🎉', '📦', '🚚', '💬'];
 const LIKED_KEY = 'gudo-journal-liked';
 const USER_KEY = 'gudo-journal-user';
-const JOURNAL_PASSWORD = 'gudo2026';
+const JOURNAL_PASSWORD = '2026gudo';
 const LS_JOURNAL_AUTH = 'gudo-journal-auth';
 
 /* ─── EntryCard ─── */
@@ -555,7 +555,7 @@ export default function JournalPage() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              if (password === JOURNAL_PASSWORD) {
+              if (password.toLowerCase() === JOURNAL_PASSWORD) {
                 setAuthenticated(true);
                 localStorage.setItem(LS_JOURNAL_AUTH, 'true');
                 setPwError(false);

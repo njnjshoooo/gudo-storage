@@ -33,7 +33,7 @@ const tools = [
   },
   {
     icon: '🏪',
-    title: '門市使用導覽',
+    title: 'GUDO 門市導覽',
     desc: '物品擺放位置 · 門市小守則',
     href: '/store',
     accent: 'teal',
