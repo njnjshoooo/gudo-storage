@@ -30,6 +30,7 @@ const tools = [
     desc: '店員每日交接筆記，共享今日狀況',
     href: '/journal',
     accent: 'purple',
+    locked: true,
   },
   {
     icon: '🏪',
@@ -37,6 +38,7 @@ const tools = [
     desc: '物品擺放位置 · 門市小守則',
     href: '/store',
     accent: 'teal',
+    locked: true,
   },
 ];
 

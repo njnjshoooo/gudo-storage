@@ -78,6 +78,13 @@ interface Location {
 }
 
 const LOCATIONS: Location[] = [
+  /* ── 1F 店面 ── */
+  { id: 'l0a', title: 'GUDO 大門（松德路118巷3號1樓）', floor: '1f',
+    images: ['/images/store/entrance-1.jpg', '/images/store/entrance-2.jpg'] },
+  { id: 'l0b', title: '社區中庭', floor: '1f',
+    images: ['/images/store/courtyard.jpg'] },
+  { id: 'l0c', title: '管理室', floor: '1f',
+    images: ['/images/store/management-1.jpg', '/images/store/management-2.jpg'] },
   { id: 'l1', title: '1F 冷氣遙控器', floor: '1f',
     images: ['/images/store/ac-remote.jpg'] },
   { id: 'l2', title: '1F 櫃檯區衛生紙文具用品', floor: '1f',
@@ -86,6 +93,7 @@ const LOCATIONS: Location[] = [
     images: ['/images/store/power-switch-1.jpg', '/images/store/power-switch-2.jpg'] },
   { id: 'l4', title: '1F 洗手間用品', floor: '1f',
     images: ['/images/store/restroom-1.jpg', '/images/store/restroom-2.jpg'] },
+  /* ── B1 倉庫 ── */
   { id: 'l5', title: 'B1 包裝區 工具區', floor: 'b1',
     images: ['/images/store/b1-packing-1.jpg', '/images/store/b1-packing-2.jpg', '/images/store/b1-packing-3.jpg'] },
   { id: 'l6', title: 'B1 後門 去垃圾區與電梯的通道', floor: 'b1',
@@ -94,6 +102,8 @@ const LOCATIONS: Location[] = [
     images: ['/images/store/b1-key.jpg'] },
   { id: 'l8', title: 'B1 廁所內搬家包材', floor: 'b1',
     images: ['/images/store/b1-toilet-1.jpg', '/images/store/b1-toilet-2.jpg'] },
+  { id: 'l9', title: 'B1 垃圾集中區', floor: 'b1',
+    images: ['/images/store/b1-trash.jpg'] },
 ];
 
 const RULES = [
@@ -188,12 +198,32 @@ export default function StorePage() {
         <h1 className="text-base font-bold tracking-wide">🏪 GUDO 門市導覽</h1>
       </header>
 
-      {/* Address strip */}
-      <div className="bg-white border-b border-[#E8E4DF] px-5 py-2.5 flex items-center gap-2">
-        <span className="text-[#8C5726]">📍</span>
-        <p className="text-[12px] text-[#555] font-medium">
-          台北市信義區松德路118巷3號 1樓（B1）
-        </p>
+      {/* Info Cards */}
+      <div className="px-4 pt-3 pb-1 space-y-2 max-w-[520px] mx-auto w-full">
+        {/* Address */}
+        <div className="bg-white rounded-xl border border-[#E8E4DF] px-4 py-3 flex items-start gap-3">
+          <span className="text-lg shrink-0 mt-0.5">📍</span>
+          <div>
+            <p className="text-[11px] font-bold text-[#888] mb-0.5">門市地址</p>
+            <p className="text-[13px] font-semibold text-[#2C2C2C] leading-snug">
+              台北市信義區松德路118巷3號 1樓、B1
+            </p>
+          </div>
+        </div>
+        {/* Wi-Fi */}
+        <div className="bg-white rounded-xl border border-[#E8E4DF] px-4 py-3 flex items-start gap-3">
+          <span className="text-lg shrink-0 mt-0.5">📶</span>
+          <div className="flex-1">
+            <p className="text-[11px] font-bold text-[#888] mb-1">Wi-Fi</p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+              <p className="text-[11px] text-[#888]">帳號</p>
+              <p className="text-[12px] font-semibold text-[#2C2C2C]">gudo-store-5G</p>
+              <p className="text-[11px] text-[#888]">密碼</p>
+              <p className="text-[12px] font-semibold text-[#2C2C2C]">55784792</p>
+            </div>
+            <p className="text-[10px] text-amber-600 mt-1.5">⚠️ 備註：B1 訊號較差</p>
+          </div>
+        </div>
       </div>
 
       {/* Tabs */}
