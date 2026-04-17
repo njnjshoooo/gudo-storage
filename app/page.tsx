@@ -1,18 +1,19 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import ScheduleWidget from './components/ScheduleWidget';
 
 const tools = [
   {
     icon: '🗄️',
-    title: '收納品配置工具',
-    desc: '輸入空間尺寸，推薦最合適的收納品（功能測試中）',
+    title: '收納品配置神器',
+    desc: '輸入空間尺寸，推薦最合適的收納品',
     href: '/tool',
     accent: 'emerald',
   },
   {
     icon: '🛍️',
     title: '商品型錄',
-    desc: '所有收納品一次瀏覽，含售價與尺寸（功能測試中）',
+    desc: '所有收納品一次瀏覽，含售價與尺寸',
     href: '/edm',
     accent: 'blue',
   },
@@ -122,6 +123,9 @@ export default function Home() {
           </div>
         ))}
       </div>
+
+      {/* ── SCHEDULE ── */}
+      <ScheduleWidget />
 
       {/* ── TOOLS GRID ── */}
       <div className="px-4 pt-5 pb-2">

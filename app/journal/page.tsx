@@ -7,6 +7,7 @@ import { getSupabase } from '@/lib/supabase';
 /* ─── Types ─── */
 type Like = { id: number; liker_name: string };
 type Comment = { id: number; author: string; content: string; created_at: string };
+type Partner = { id: number; name: string };
 type Entry = {
   id: number;
   created_at: string;
@@ -401,6 +402,15 @@ export default function JournalPage() {
   const [showUserModal, setShowUserModal] = useState(false);
   const [userInput, setUserInput] = useState('');
 
+  // Schedule management
+  const [showSchedule, setShowSchedule] = useState(false);
+  const [schedDate, setSchedDate] = useState(getTodayStr());
+  const [partners, setPartners] = useState<Partner[]>([]);
+  const [selectedPartners, setSelectedPartners] = useState<string[]>([]);
+  const [newPartnerInput, setNewPartnerInput] = useState('');
+  const [schedSaving, setSchedSaving] = useState(false);
+  const [schedSaved, setSchedSaved] = useState(false);
+
   // Form state
   const [showForm, setShowForm] = useState(false);
   const [author, setAuthor] = useState('');
@@ -452,7 +462,68 @@ export default function JournalPage() {
     const sb = getSupabase();
     setConfigured(!!sb);
     loadEntries();
+    if (sb) {
+      sb.from('partners').select('id, name').order('name').then(({ data }) => {
+        if (data) setPartners(data as Partner[]);
+      });
+    }
   }, [loadEntries]);
+
+  /* ── Load schedule for selected date ── */
+  useEffect(() => {
+    if (!showSchedule) return;
+    const sb = getSupabase();
+    if (!sb) return;
+    sb.from('schedules')
+      .select('partner_names')
+      .eq('date', schedDate)
+      .maybeSingle()
+      .then(({ data }) => {
+        setSelectedPartners((data as { partner_names: string[] } | null)?.partner_names ?? []);
+      });
+  }, [schedDate, showSchedule]);
+
+  /* ── Save schedule ── */
+  const handleSaveSchedule = async () => {
+    const sb = getSupabase();
+    if (!sb || schedSaving) return;
+    setSchedSaving(true);
+    try {
+      // Add any new partners to the partners table
+      for (const name of selectedPartners) {
+        if (!partners.find((p) => p.name === name)) {
+          const { data } = await sb.from('partners').insert({ name }).select().single();
+          if (data) setPartners((prev) => [...prev, data as Partner].sort((a, b) => a.name.localeCompare(b.name)));
+        }
+      }
+      // Upsert schedule
+      await sb.from('schedules').upsert(
+        { date: schedDate, partner_names: selectedPartners, updated_at: new Date().toISOString() },
+        { onConflict: 'date' }
+      );
+      setSchedSaved(true);
+      setTimeout(() => setSchedSaved(false), 2000);
+    } finally {
+      setSchedSaving(false);
+    }
+  };
+
+  const togglePartner = (name: string) => {
+    setSelectedPartners((prev) =>
+      prev.includes(name) ? prev.filter((p) => p !== name) : [...prev, name]
+    );
+  };
+
+  const addNewPartner = () => {
+    const name = newPartnerInput.trim();
+    if (!name || selectedPartners.includes(name)) return;
+    setSelectedPartners((prev) => [...prev, name]);
+    setNewPartnerInput('');
+    // Add to local partners list for display (saved to DB on submit)
+    if (!partners.find((p) => p.name === name)) {
+      setPartners((prev) => [...prev, { id: -Date.now(), name }].sort((a, b) => a.name.localeCompare(b.name)));
+    }
+  };
 
   /* ── Real-time subscription ── */
   useEffect(() => {
@@ -681,16 +752,134 @@ export default function JournalPage() {
         </div>
       </header>
 
-      {/* ── Write entry button ── */}
+      {/* ── Action buttons row ── */}
       {!showForm && (
-        <div className="max-w-[520px] w-full mx-auto px-4 pt-4">
+        <div className="max-w-[520px] w-full mx-auto px-4 pt-4 flex gap-2">
           <button
             onClick={() => setShowForm(true)}
-            className="w-full bg-[#8C5726] text-white rounded-2xl py-3.5 text-sm font-bold flex items-center justify-center gap-2 hover:bg-[#7A4920] active:scale-[0.98] transition-all shadow-sm"
+            className="flex-1 bg-[#8C5726] text-white rounded-2xl py-3.5 text-sm font-bold flex items-center justify-center gap-2 hover:bg-[#7A4920] active:scale-[0.98] transition-all shadow-sm"
           >
             <span className="text-lg">✏️</span>
             寫今日筆記
           </button>
+          {configured && (
+            <button
+              onClick={() => setShowSchedule((v) => !v)}
+              className={`px-4 rounded-2xl py-3.5 text-sm font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm border-2
+                ${showSchedule
+                  ? 'bg-indigo-600 border-indigo-600 text-white'
+                  : 'bg-white border-[#E8E4DF] text-[#555] hover:border-indigo-300'
+                }`}
+            >
+              <span className="text-lg">📅</span>
+              排班
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* ── Schedule management panel ── */}
+      {showSchedule && !showForm && (
+        <div className="max-w-[520px] w-full mx-auto px-4 pt-3">
+          <div className="bg-white rounded-2xl border border-[#E8E4DF] shadow-sm overflow-hidden">
+            <div className="px-4 py-3 border-b border-[#F0ECE6] flex items-center justify-between">
+              <span className="text-sm font-bold text-[#2C2C2C]">📅 管理排班</span>
+              <button
+                type="button"
+                onClick={() => setShowSchedule(false)}
+                className="text-[#999] hover:text-[#555] text-sm"
+              >✕</button>
+            </div>
+            <div className="p-4 space-y-4">
+              {/* Date picker */}
+              <div>
+                <label className="text-[11px] font-semibold text-[#888] block mb-1">排班日期</label>
+                <input
+                  type="date"
+                  value={schedDate}
+                  onChange={(e) => setSchedDate(e.target.value)}
+                  className="text-sm border border-[#E8E4DF] rounded-xl px-3 py-2 text-[#2C2C2C] bg-[#F7F5F0] outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 w-full"
+                />
+              </div>
+
+              {/* Known partners as toggle chips */}
+              {partners.length > 0 && (
+                <div>
+                  <label className="text-[11px] font-semibold text-[#888] block mb-2">選擇夥伴</label>
+                  <div className="flex flex-wrap gap-2">
+                    {partners.map((p) => {
+                      const selected = selectedPartners.includes(p.name);
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => togglePartner(p.name)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-all
+                            ${selected
+                              ? 'bg-indigo-600 border-indigo-600 text-white'
+                              : 'bg-white border-[#E8E4DF] text-[#555] hover:border-indigo-300'
+                            }`}
+                        >
+                          {selected ? '✓ ' : ''}{p.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Add new partner */}
+              <div>
+                <label className="text-[11px] font-semibold text-[#888] block mb-1">新增夥伴</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newPartnerInput}
+                    onChange={(e) => setNewPartnerInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addNewPartner(); }}}
+                    placeholder="輸入名字後按 Enter 或＋"
+                    className="flex-1 px-3 py-2 rounded-xl border border-[#E8E4DF] text-sm text-[#2C2C2C] bg-[#F7F5F0] outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={addNewPartner}
+                    disabled={!newPartnerInput.trim()}
+                    className="px-3 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold disabled:opacity-40 hover:bg-indigo-700 transition"
+                  >＋</button>
+                </div>
+              </div>
+
+              {/* Selected preview */}
+              {selectedPartners.length > 0 && (
+                <div className="bg-[#F7F5F0] rounded-xl px-3 py-2.5">
+                  <p className="text-[10px] text-[#888] mb-1.5 font-semibold">當日上班：</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedPartners.map((name) => (
+                      <span
+                        key={name}
+                        className="flex items-center gap-1 px-2.5 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-semibold"
+                      >
+                        👤 {name}
+                        <button
+                          onClick={() => togglePartner(name)}
+                          className="text-indigo-400 hover:text-indigo-700 ml-0.5 leading-none"
+                        >×</button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={handleSaveSchedule}
+                disabled={schedSaving}
+                className="w-full bg-indigo-600 text-white rounded-xl py-2.5 text-sm font-bold hover:bg-indigo-700 disabled:opacity-50 transition-all"
+              >
+                {schedSaving ? '儲存中...' : schedSaved ? '✓ 已儲存！' : '儲存排班'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

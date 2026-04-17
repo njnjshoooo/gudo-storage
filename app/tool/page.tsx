@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { PRODUCTS, type Product } from '@/lib/products';
@@ -417,6 +417,7 @@ export default function ToolPage() {
   // Cart: product sku → purchase quantity
   const [cart, setCart]               = useState<Record<string, number>>({});
   const [showQuote, setShowQuote]     = useState(false);
+  const [savedIndicator, setSavedIndicator] = useState(false);
 
   const activeCab     = cabs.find(c => c.id === activeCabId) ?? null;
   const activeQty     = activeCabId ? (qtyMap[activeCabId] ?? 3) : 3;
@@ -431,6 +432,36 @@ export default function ToolPage() {
     () => activeCab ? findProducts(activeCab, activeQty) : [],
     [activeCab, activeQty],
   );
+
+  /* ── localStorage: load on mount ── */
+  const didLoad = useRef(false);
+  useEffect(() => {
+    if (didLoad.current) return;
+    didLoad.current = true;
+    try {
+      const saved = localStorage.getItem('gudo-cabinets');
+      if (saved) {
+        const parsed = JSON.parse(saved) as { cabs: Cabinet[]; qtyMap: Record<string, number> };
+        if (parsed.cabs?.length) {
+          setCabs(parsed.cabs);
+          if (parsed.qtyMap) setQtyMap(parsed.qtyMap);
+        }
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  /* ── localStorage: auto-save when cabs or qtyMap change ── */
+  const isFirstSave = useRef(true);
+  useEffect(() => {
+    if (isFirstSave.current) { isFirstSave.current = false; return; }
+    try {
+      localStorage.setItem('gudo-cabinets', JSON.stringify({ cabs, qtyMap }));
+      if (cabs.length > 0) {
+        setSavedIndicator(true);
+        setTimeout(() => setSavedIndicator(false), 1500);
+      }
+    } catch { /* ignore */ }
+  }, [cabs, qtyMap]);
 
   /* ── Handlers ── */
   const addCabinet = () => {
@@ -669,7 +700,10 @@ export default function ToolPage() {
     <div className="min-h-screen bg-brand-bg flex flex-col">
       <header className="bg-brand-green text-white px-5 py-3 flex items-center gap-3 sticky top-0 z-50 shadow-md">
         <Link href="/" className="text-white/80 hover:text-white transition text-sm">&larr;</Link>
-        <h1 className="text-base font-bold tracking-wide flex-1">🗄️ 收納品配置工具（功能測試中）</h1>
+        <h1 className="text-base font-bold tracking-wide flex-1">🗄️ 收納品配置神器</h1>
+        {savedIndicator && (
+          <span className="text-[10px] text-white/70 bg-white/10 px-2 py-0.5 rounded-full">已儲存</span>
+        )}
         {/* Cart badge */}
         {cartCount > 0 && (
           <button
