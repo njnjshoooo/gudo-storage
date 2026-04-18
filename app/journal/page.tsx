@@ -489,20 +489,32 @@ export default function JournalPage() {
     if (!sb || schedSaving) return;
     setSchedSaving(true);
     try {
-      // Add any new partners to the partners table
-      for (const name of selectedPartners) {
-        if (!partners.find((p) => p.name === name)) {
-          const { data } = await sb.from('partners').insert({ name }).select().single();
-          if (data) setPartners((prev) => [...prev, data as Partner].sort((a, b) => a.name.localeCompare(b.name)));
-        }
-      }
-      // Upsert schedule
-      await sb.from('schedules').upsert(
+      // 1. Upsert schedule
+      const { error: schedErr } = await sb.from('schedules').upsert(
         { date: schedDate, partner_names: selectedPartners, updated_at: new Date().toISOString() },
         { onConflict: 'date' }
       );
+      if (schedErr) throw schedErr;
+
+      // 2. Upsert all selected partner names (ignore if already exists)
+      if (selectedPartners.length > 0) {
+        const { error: partnerErr } = await sb.from('partners').upsert(
+          selectedPartners.map((name) => ({ name })),
+          { onConflict: 'name', ignoreDuplicates: true }
+        );
+        if (partnerErr) console.warn('[Partner upsert warning]', partnerErr);
+      }
+
+      // 3. Refresh partners list from DB (replace any fake-ID locals)
+      const { data: freshPartners } = await sb.from('partners').select('id, name').order('name');
+      if (freshPartners) setPartners(freshPartners as Partner[]);
+
       setSchedSaved(true);
       setTimeout(() => setSchedSaved(false), 2000);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : JSON.stringify(e);
+      console.error('[Schedule save error]', e);
+      alert('儲存失敗：' + msg);
     } finally {
       setSchedSaving(false);
     }
