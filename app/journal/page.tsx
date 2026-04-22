@@ -410,6 +410,12 @@ export default function JournalPage() {
   const [newPartnerInput, setNewPartnerInput] = useState('');
   const [schedSaving, setSchedSaving] = useState(false);
   const [schedSaved, setSchedSaved] = useState(false);
+  const [editingPartners, setEditingPartners] = useState(false);
+  const [monthSchedules, setMonthSchedules] = useState<Record<string, string[]>>({});
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
 
   // Form state
   const [showForm, setShowForm] = useState(false);
@@ -483,6 +489,42 @@ export default function JournalPage() {
       });
   }, [schedDate, showSchedule]);
 
+  /* ── Load month schedules for calendar ── */
+  const loadMonthSchedules = useCallback(async () => {
+    const sb = getSupabase();
+    if (!sb) return;
+    const [y, m] = calendarMonth.split('-').map(Number);
+    const start = `${calendarMonth}-01`;
+    const lastDay = new Date(y, m, 0).getDate();
+    const end = `${calendarMonth}-${String(lastDay).padStart(2, '0')}`;
+    const { data } = await sb
+      .from('schedules')
+      .select('date, partner_names')
+      .gte('date', start)
+      .lte('date', end);
+    const map: Record<string, string[]> = {};
+    (data as { date: string; partner_names: string[] }[] | null)?.forEach((s) => {
+      map[s.date] = s.partner_names;
+    });
+    setMonthSchedules(map);
+  }, [calendarMonth]);
+
+  useEffect(() => {
+    if (!showSchedule) return;
+    loadMonthSchedules();
+  }, [showSchedule, loadMonthSchedules]);
+
+  const prevMonth = () => {
+    const [y, m] = calendarMonth.split('-').map(Number);
+    const d = new Date(y, m - 2, 1);
+    setCalendarMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  };
+  const nextMonth = () => {
+    const [y, m] = calendarMonth.split('-').map(Number);
+    const d = new Date(y, m, 1);
+    setCalendarMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  };
+
   /* ── Save schedule ── */
   const handleSaveSchedule = async () => {
     const sb = getSupabase();
@@ -509,6 +551,9 @@ export default function JournalPage() {
       const { data: freshPartners } = await sb.from('partners').select('id, name').order('name');
       if (freshPartners) setPartners(freshPartners as Partner[]);
 
+      // 4. Refresh month schedules so calendar dots update
+      await loadMonthSchedules();
+
       setSchedSaved(true);
       setTimeout(() => setSchedSaved(false), 2000);
     } catch (e) {
@@ -534,6 +579,79 @@ export default function JournalPage() {
     // Add to local partners list for display (saved to DB on submit)
     if (!partners.find((p) => p.name === name)) {
       setPartners((prev) => [...prev, { id: -Date.now(), name }].sort((a, b) => a.name.localeCompare(b.name)));
+    }
+  };
+
+  /* ── Rename partner (also updates historical schedules) ── */
+  const handleRenamePartner = async (p: Partner) => {
+    const input = prompt(`將「${p.name}」重新命名為：`, p.name);
+    if (!input) return;
+    const newName = input.trim();
+    if (!newName || newName === p.name) return;
+    const sb = getSupabase();
+    if (!sb) return;
+
+    // Check for duplicate name
+    if (partners.some((x) => x.id !== p.id && x.name === newName)) {
+      alert('已有相同名字的夥伴');
+      return;
+    }
+
+    try {
+      // 1. Rename in partners table (only if real ID)
+      if (p.id > 0) {
+        const { error } = await sb.from('partners').update({ name: newName }).eq('id', p.id);
+        if (error) throw error;
+      }
+      // 2. Update all schedules containing old name
+      const { data: scheds } = await sb
+        .from('schedules')
+        .select('id, partner_names')
+        .contains('partner_names', [p.name]);
+      for (const s of (scheds as { id: number; partner_names: string[] }[] | null) ?? []) {
+        const updated = s.partner_names.map((n) => (n === p.name ? newName : n));
+        await sb.from('schedules').update({ partner_names: updated }).eq('id', s.id);
+      }
+      // 3. Update local state
+      setPartners((prev) =>
+        prev.map((x) => (x.id === p.id ? { ...x, name: newName } : x))
+          .sort((a, b) => a.name.localeCompare(b.name))
+      );
+      setSelectedPartners((prev) => prev.map((n) => (n === p.name ? newName : n)));
+      await loadMonthSchedules();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : JSON.stringify(e);
+      alert('重新命名失敗：' + msg);
+    }
+  };
+
+  /* ── Delete partner (also removes from historical schedules) ── */
+  const handleDeletePartner = async (p: Partner) => {
+    if (!confirm(`確定刪除「${p.name}」？該夥伴將從所有歷史排班中移除，此動作無法復原。`)) return;
+    const sb = getSupabase();
+    if (!sb) return;
+    try {
+      // 1. Delete from partners table (only if real ID)
+      if (p.id > 0) {
+        const { error } = await sb.from('partners').delete().eq('id', p.id);
+        if (error) throw error;
+      }
+      // 2. Remove from all schedules
+      const { data: scheds } = await sb
+        .from('schedules')
+        .select('id, partner_names')
+        .contains('partner_names', [p.name]);
+      for (const s of (scheds as { id: number; partner_names: string[] }[] | null) ?? []) {
+        const updated = s.partner_names.filter((n) => n !== p.name);
+        await sb.from('schedules').update({ partner_names: updated }).eq('id', s.id);
+      }
+      // 3. Update local state
+      setPartners((prev) => prev.filter((x) => x.id !== p.id));
+      setSelectedPartners((prev) => prev.filter((n) => n !== p.name));
+      await loadMonthSchedules();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : JSON.stringify(e);
+      alert('刪除失敗：' + msg);
     }
   };
 
@@ -803,24 +921,119 @@ export default function JournalPage() {
               >✕</button>
             </div>
             <div className="p-4 space-y-4">
-              {/* Date picker */}
+              {/* Month calendar */}
               <div>
-                <label className="text-[11px] font-semibold text-[#888] block mb-1">排班日期</label>
-                <input
-                  type="date"
-                  value={schedDate}
-                  onChange={(e) => setSchedDate(e.target.value)}
-                  className="text-sm border border-[#E8E4DF] rounded-xl px-3 py-2 text-[#2C2C2C] bg-[#F7F5F0] outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 w-full"
-                />
+                <div className="flex items-center justify-between mb-2">
+                  <button
+                    type="button"
+                    onClick={prevMonth}
+                    className="w-7 h-7 rounded-lg bg-[#F7F5F0] hover:bg-[#E8E4DF] text-[#555] text-sm flex items-center justify-center"
+                  >‹</button>
+                  <span className="text-sm font-bold text-[#2C2C2C]">
+                    {calendarMonth.replace('-', ' 年 ')} 月
+                  </span>
+                  <button
+                    type="button"
+                    onClick={nextMonth}
+                    className="w-7 h-7 rounded-lg bg-[#F7F5F0] hover:bg-[#E8E4DF] text-[#555] text-sm flex items-center justify-center"
+                  >›</button>
+                </div>
+                <div className="grid grid-cols-7 gap-1">
+                  {['日','一','二','三','四','五','六'].map((w, i) => (
+                    <div key={w} className={`text-center text-[10px] font-semibold py-1
+                      ${i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : 'text-[#aaa]'}`}>
+                      {w}
+                    </div>
+                  ))}
+                  {(() => {
+                    const [y, m] = calendarMonth.split('-').map(Number);
+                    const firstDay = new Date(y, m - 1, 1);
+                    const lastDay = new Date(y, m, 0);
+                    const startWeekday = firstDay.getDay();
+                    const daysInMonth = lastDay.getDate();
+                    const today = getTodayStr();
+                    const cells: (string | null)[] = [];
+                    for (let i = 0; i < startWeekday; i++) cells.push(null);
+                    for (let d = 1; d <= daysInMonth; d++) {
+                      cells.push(`${calendarMonth}-${String(d).padStart(2, '0')}`);
+                    }
+                    return cells.map((dateStr, i) => {
+                      if (!dateStr) return <div key={`e${i}`} />;
+                      const day = Number(dateStr.slice(8));
+                      const schedNames = monthSchedules[dateStr];
+                      const hasSchedule = schedNames && schedNames.length > 0;
+                      const isSelected = dateStr === schedDate;
+                      const isToday = dateStr === today;
+                      return (
+                        <button
+                          key={dateStr}
+                          type="button"
+                          onClick={() => setSchedDate(dateStr)}
+                          className={`aspect-square flex flex-col items-center justify-center rounded-lg text-xs border transition-all p-0.5
+                            ${isSelected
+                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                              : isToday
+                                ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
+                                : 'bg-white border-[#F0ECE6] text-[#555] hover:border-indigo-300'
+                            }`}
+                        >
+                          <span className="font-bold leading-none">{day}</span>
+                          {hasSchedule && (
+                            <span className={`text-[8px] leading-none mt-0.5 truncate w-full px-0.5
+                              ${isSelected ? 'text-white/90' : 'text-indigo-500 font-semibold'}`}>
+                              {schedNames.length === 1 ? schedNames[0] : `${schedNames.length}人`}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    });
+                  })()}
+                </div>
+                <p className="text-[10px] text-[#999] mt-2">
+                  已選：<span className="font-semibold text-[#2C2C2C]">{schedDate}</span>
+                </p>
               </div>
 
               {/* Known partners as toggle chips */}
               {partners.length > 0 && (
                 <div>
-                  <label className="text-[11px] font-semibold text-[#888] block mb-2">選擇夥伴</label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-[11px] font-semibold text-[#888]">選擇夥伴</label>
+                    <button
+                      type="button"
+                      onClick={() => setEditingPartners((v) => !v)}
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-semibold transition
+                        ${editingPartners
+                          ? 'bg-amber-500 text-white'
+                          : 'bg-[#F0ECE6] text-[#666] hover:bg-[#E8E4DF]'}`}
+                    >
+                      {editingPartners ? '✓ 完成' : '✏️ 編輯'}
+                    </button>
+                  </div>
                   <div className="flex flex-wrap gap-2">
                     {partners.map((p) => {
                       const selected = selectedPartners.includes(p.name);
+                      if (editingPartners) {
+                        return (
+                          <div
+                            key={p.id}
+                            className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold border-2 border-amber-300 bg-amber-50 text-[#555]"
+                          >
+                            <button
+                              type="button"
+                              onClick={() => handleRenamePartner(p)}
+                              className="hover:text-amber-700 px-1"
+                              title="重新命名"
+                            >✏️ {p.name}</button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePartner(p)}
+                              className="text-red-400 hover:text-red-600 ml-0.5"
+                              title="刪除"
+                            >×</button>
+                          </div>
+                        );
+                      }
                       return (
                         <button
                           key={p.id}
